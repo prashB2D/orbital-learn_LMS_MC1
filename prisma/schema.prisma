@@ -1,0 +1,189 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============== ENUMS ==============
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum ContentType {
+  LESSON
+  QUIZ
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ============== MODELS ==============
+
+// Users
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          UserRole @default(STUDENT)
+
+  // Relations
+  enrollments   Enrollment[]
+  quizAttempts  QuizAttempt[]
+  payments      Payment[]
+
+  // Reset password
+  resetToken    String?
+  resetTokenExpiry DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Courses
+model Course {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  price         Float
+  thumbnail     String
+  slug          String   @unique
+
+  // Relations
+  contents      Content[]
+  enrollments   Enrollment[]
+  payments      Payment[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Contents (Lessons & Quizzes)
+model Content {
+  id            String      @id @default(uuid())
+  courseId      String
+  course        Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  type          ContentType  // LESSON or QUIZ
+  title         String
+  order         Int
+
+  // Lesson-specific fields
+  videoId       String?     // YouTube videoId
+  duration      Int?        // in seconds
+  attachments   String[]    // Google Drive links as JSON array
+
+  // Relations
+  questions     Question[]  // MCQ questions (only for QUIZ type)
+  progress      Progress[]
+  quizAttempts  QuizAttempt[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Questions (MCQ for Quizzes only)
+model Question {
+  id              String   @id @default(uuid())
+  contentId       String
+  content         Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  questionText    String
+  options         String[] // ["Option 1", "Option 2", ...]
+  correctAnswer   Int      // Index of correct option
+  order           Int
+
+  createdAt       DateTime @default(now())
+}
+
+// Enrollments (Student purchases course)
+model Enrollment {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  // Relations
+  progress      Progress[]
+  certificate   Certificate?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, courseId]) // One enrollment per student per course
+}
+
+// Progress (Track lesson/quiz completion)
+model Progress {
+  id              String      @id @default(uuid())
+  enrollmentId    String
+  enrollment      Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  contentId       String
+  content         Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  completed       Boolean     @default(false)
+  completedAt     DateTime?
+
+  createdAt       DateTime @default(now())
+
+  @@unique([enrollmentId, contentId]) // One progress record per content per enrollment
+}
+
+// Quiz Attempts (Multiple attempts per student)
+model QuizAttempt {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  quizId        String
+  quiz          Content  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  attemptNumber Int      // 1, 2, 3, etc.
+  answers       Json     // {questionId: selectedOptionIndex}
+  score         Float    // Percentage (0-100)
+
+  createdAt     DateTime @default(now())
+}
+
+// Payments (All transactions)
+model Payment {
+  id                  String        @id @default(uuid())
+  userId              String
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId            String
+  course              Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  amount              Float
+  razorpayOrderId     String        @unique
+  razorpayPaymentId   String?       @unique
+
+  status              PaymentStatus @default(PENDING)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Certificates (PDF generated on 100% completion)
+model Certificate {
+  id            String     @id @default(uuid())
+  enrollmentId  String     @unique
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  pdfUrl        String     // Path to PDF in public/certificates/
+  issuedAt      DateTime   @default(now())
+}
