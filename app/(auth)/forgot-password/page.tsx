@@ -19,17 +19,22 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError("");
 
-    // TODO: Implement forgot password logic
-    // 1. Call POST /api/auth/forgot-password
-    // 2. Send {email}
-    // 3. On success: show success message
-    // 4. On error: show error message
-
     try {
-      console.log("Forgot password:", { email });
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send reset email");
+      }
+
       setSuccess(true);
-    } catch (err) {
-      setError("Failed to send reset email");
+    } catch (err: any) {
+      setError(err.message || "Failed to send reset email. Please try again.");
     } finally {
       setLoading(false);
     }

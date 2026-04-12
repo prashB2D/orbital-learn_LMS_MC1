@@ -26,10 +26,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse specific shapes explicitly
-    const { quizId, answers } = await request.json();
+    const { quizId, answers, timeTaken = 0 } = await request.json();
 
     if (!quizId || !answers) {
       return NextResponse.json({ error: "Missing payload params" }, { status: 400 });
+    }
+
+    // 0. Fetch the quiz itself to get its courseId and duration
+    const quiz = await prisma.content.findUnique({
+      where: { id: quizId },
+      select: { courseId: true, duration: true }
+    });
+
+    if (!quiz) {
+      return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
     // 1. Fetch source questions to evaluate correctness securely serverside
@@ -47,49 +57,47 @@ export async function POST(request: NextRequest) {
     });
 
     const score = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
+    const skippedCount = Math.max(0, questions.length - Object.keys(answers).length);
 
-    // 3. Increment attempt tracker natively mapped to this specific user
+    // Points Calc (Per-Course Schema)
+    const maxTime = quiz.duration || 300; // default 5 min
+    const validTimeTaken = Math.min(Math.max(timeTaken, 0), maxTime); 
+    
+    let pointsEarned = correctCount * 10;
+    pointsEarned += 20; // Completion Bonus
+    
+    if (maxTime > 0) {
+      pointsEarned += ((maxTime - validTimeTaken) / maxTime) * 5; // Time bonus
+    }
+
+    // 3. Increment attempt tracker 
     const previousAttempts = await prisma.quizAttempt.count({
       where: { userId: user.id, quizId }
     });
     
     const attemptNumber = previousAttempts + 1;
 
-    // 4. Save quiz attempt into DB
+    // 4. Save detailed attempt into DB tracking CourseId for rapid retrieval
     const attempt = await prisma.quizAttempt.create({
       data: {
         userId: user.id,
         quizId,
+        courseId: quiz.courseId,
         attemptNumber,
         answers,
-        score
+        score,
+        timeTaken: validTimeTaken,
+        skippedCount,
+        pointsEarned
       }
     });
-
-    // 5. Leaderboard / Global Ranking Aggregation targeting best unique scores only
-    const allBestScores = await prisma.quizAttempt.groupBy({
-      by: ['userId'],
-      where: { quizId },
-      _max: { score: true }
-    });
-    
-    // Flatten + Sort highest mapping
-    const sortedScores = allBestScores
-      .map(s => s._max.score || 0)
-      .sort((a, b) => b - a);
-
-    // Array index logic guarantees our relative placement integer via finding first equal/lesser marker.
-    // e.g., mapping [100, 90, 80] targeting a 90 score trips index 1 natively => Rank 2.
-    const rankIndex = sortedScores.findIndex(s => s <= score);
-    const rank = rankIndex !== -1 ? rankIndex + 1 : sortedScores.length + 1;
 
     return NextResponse.json({
       success: true,
       score,
+      pointsEarned,
       attemptNumber,
-      attemptId: attempt.id,
-      rank,
-      totalAttempts: attemptNumber
+      attemptId: attempt.id
     });
 
   } catch (error: any) {

@@ -24,8 +24,13 @@ export async function POST(request: NextRequest) {
     const { courseId, title, order, questions } = validatedData;
 
     // Verify course exists
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
+    const course = await prisma.course.findFirst({
+      where: {
+        OR: [
+          { id: courseId },
+          { slug: courseId }
+        ]
+      },
     });
 
     if (!course) {
@@ -38,7 +43,7 @@ export async function POST(request: NextRequest) {
     // 4. Create content with type: 'QUIZ' & Create questions (nested create in Prisma)
     const quiz = await prisma.content.create({
       data: {
-        courseId,
+        courseId: course.id,
         type: "QUIZ",
         title,
         order,

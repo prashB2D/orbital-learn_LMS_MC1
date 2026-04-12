@@ -163,10 +163,16 @@ export default function LearnClient({ course, contents, enrollmentId }: LearnCli
               }}
             ></div>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-right">
+          <p className="text-xs text-gray-500 mt-2 text-right mb-4">
             {contents.filter((c) => c.completed).length} / {contents.length}{" "}
             completed
           </p>
+          <button 
+             onClick={() => router.push(`/courses/${course.slug}/leaderboard`)}
+             className="w-full py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition rounded-lg font-bold text-sm tracking-wide shadow-sm"
+          >
+             View Leaderboard & Report
+          </button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-2 space-y-1">

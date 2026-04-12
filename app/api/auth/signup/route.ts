@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = signupSchema.parse(body);
-    const { name, email, password } = validatedData;
+    const { name, password } = validatedData;
+    const email = validatedData.email.toLowerCase();
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

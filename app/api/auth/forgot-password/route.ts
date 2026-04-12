@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = forgotPasswordSchema.parse(body);
-    const { email } = validatedData;
+    const email = validatedData.email.toLowerCase();
 
     // Check if user exists
     const user = await prisma.user.findUnique({

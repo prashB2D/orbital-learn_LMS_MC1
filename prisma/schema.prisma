@@ -63,6 +63,7 @@ model Course {
   // Relations
   contents      Content[]
   enrollments   Enrollment[]
+  quizAttempts  QuizAttempt[]
   payments      Payment[]
 
   createdAt     DateTime @default(now())
@@ -152,11 +153,22 @@ model QuizAttempt {
   quizId        String
   quiz          Content  @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   attemptNumber Int      // 1, 2, 3, etc.
   answers       Json     // {questionId: selectedOptionIndex}
   score         Float    // Percentage (0-100)
+  
+  timeTaken     Int      @default(0) // time taken in seconds
+  skippedCount  Int      @default(0) // unanswered questions
+  pointsEarned  Float    @default(0) // Calculated global points for gamification
 
   createdAt     DateTime @default(now())
+
+  // High performance aggregates
+  @@index([courseId, userId])
+  @@index([courseId, pointsEarned(sort: Desc)])
 }
 
 // Payments (All transactions)

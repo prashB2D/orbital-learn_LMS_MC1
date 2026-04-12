@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Lock, Mail, AlertCircle, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
@@ -54,9 +55,16 @@ export default function LoginPage() {
 
         <div className="p-8">
           {error && (
-            <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-3 text-sm font-medium border border-red-100">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p>{error}</p>
+            <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-lg flex flex-col gap-2 text-sm font-medium border border-red-100">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <p>{error}</p>
+              </div>
+              {(error.toLowerCase().includes("password") || error.toLowerCase().includes("credential") || error.toLowerCase().includes("invalid")) && (
+                <Link href="/forgot-password" className="text-blue-600 hover:underline font-semibold ml-8">
+                  Reset your password here →
+                </Link>
+              )}
             </div>
           )}
 
@@ -79,9 +87,14 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-sm font-semibold text-blue-600 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   type="password"
