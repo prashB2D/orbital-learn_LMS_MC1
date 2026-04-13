@@ -93,8 +93,8 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = createCourseSchema.parse(body);
-    const { title, description, price, thumbnail } = validatedData;
-
+    const { title, description, price, thumbnail, aboutCourse } = validatedData;
+    
     // Generate slug from title
     let slug = generateSlug(title);
 
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
         price,
         thumbnail,
         slug,
+        aboutCourse,
       },
     });
 

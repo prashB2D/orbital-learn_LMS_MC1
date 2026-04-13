@@ -72,6 +72,16 @@ export default async function CourseDetailsPage({
             </div>
           </div>
 
+          {/* About Course */}
+          {course.aboutCourse && (
+            <div className="bg-white p-6 rounded-lg border shadow-sm">
+              <div 
+                className="prose max-w-none text-gray-800"
+                dangerouslySetInnerHTML={{ __html: course.aboutCourse }} 
+              />
+            </div>
+          )}
+
           {/* Contents List */}
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h2 className="text-2xl font-bold mb-6">Course Content</h2>

@@ -13,6 +13,7 @@ export default function CreateCoursePage() {
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [thumbnail, setThumbnail] = useState("");
+  const [aboutCourse, setAboutCourse] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +29,8 @@ export default function CreateCoursePage() {
           title, 
           description, 
           price: parseFloat(price), 
-          thumbnail 
+          thumbnail,
+          aboutCourse
         }),
       });
 
@@ -78,6 +80,20 @@ export default function CreateCoursePage() {
             placeholder="Course description"
             required
           />
+        </div>
+
+        {/* About Course */}
+        <div>
+          <label className="block font-semibold mb-2">About Course (HTML Supported)</label>
+          <textarea
+            value={aboutCourse}
+            onChange={(e) => setAboutCourse(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg h-48 font-mono text-sm"
+            placeholder={`<h3>Course Essentials</h3>\n<ul>\n  <li><b>Start Date:</b> 11th May</li>\n  <li><mark>Live Class:</mark> 9 PM</li>\n</ul>\n<img src="IMAGE_URL" />\n\n<h3>FAQ Section</h3>`}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            You can write simple HTML here. This will be displayed on the course detail page just below the main section.
+          </p>
         </div>
 
         {/* Price */}

@@ -11,6 +11,7 @@ export const createCourseSchema = z.object({
   description: z.string().min(1, "Description is required"),
   price: z.number().min(0, "Price cannot be negative"),
   thumbnail: z.string().min(1, "Thumbnail is required"),
+  aboutCourse: z.string().optional(),
 });
 
 // Update course validation

@@ -59,6 +59,7 @@ model Course {
   price         Float
   thumbnail     String
   slug          String   @unique
+  aboutCourse   String?
 
   // Relations
   contents      Content[]
