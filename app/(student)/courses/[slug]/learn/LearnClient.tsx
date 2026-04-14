@@ -14,6 +14,7 @@ interface Content {
   duration?: number | null;
   attachments?: string[];
   completed: boolean;
+  lastWatchedTime?: number;
 }
 
 interface Module {
@@ -45,6 +46,8 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(
     modules.reduce((acc, m) => ({ ...acc, [m.id]: true }), {})
   );
+  
+  const [canComplete, setCanComplete] = useState<boolean>(false);
 
   const toggleModule = (id: string) => {
     setExpandedModules(prev => ({ ...prev, [id]: !prev[id] }));
@@ -78,13 +81,17 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
 
   return (
     <div className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto py-8 px-4">
-      {/* LEFT: Main Watch / Read Area */}
       <div className="md:col-span-3 space-y-6">
         {/* MEDIA DISPLAY */}
         {activeContent?.type === "LESSON" && activeContent.videoId ? (
           <VideoPlayer
+            contentId={activeContent.id}
+            enrollmentId={enrollmentId}
             videoId={activeContent.videoId}
+            duration={activeContent.duration || 0}
+            lastWatchedTime={activeContent.lastWatchedTime || 0}
             onComplete={() => handleComplete(activeContent.id)}
+            onReadyToComplete={(ready) => setCanComplete(ready)}
           />
         ) : activeContent?.type === "QUIZ" ? (
           <QuizComponent 
@@ -119,24 +126,32 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
               </div>
             </div>
             
-            <button
-              onClick={() => activeContent && handleComplete(activeContent.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-                activeContent?.completed
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {activeContent?.completed ? (
-                <>
-                  <CheckCircle2 className="w-5 h-5" /> Completed
-                </>
-              ) : (
-                <>
-                  <Circle className="w-5 h-5" /> Mark as Complete
-                </>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                disabled={(activeContent?.type === "LESSON" && !activeContent?.completed && !canComplete)}
+                onClick={() => activeContent && handleComplete(activeContent.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
+                  activeContent?.completed
+                    ? "bg-green-100 text-green-700"
+                    : (activeContent?.type === "LESSON" && !canComplete)
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed border outline-none"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {activeContent?.completed ? (
+                  <>
+                    <CheckCircle2 className="w-5 h-5" /> Completed
+                  </>
+                ) : (
+                  <>
+                    <Circle className="w-5 h-5" /> Mark as Complete
+                  </>
+                )}
+              </button>
+              {activeContent?.type === "LESSON" && !activeContent?.completed && !canComplete && (
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Watch 80% to complete</span>
               )}
-            </button>
+            </div>
           </div>
 
           {/* ATTACHMENTS */}

@@ -22,7 +22,16 @@ export default async function CourseDetailsPage({
   const course = await prisma.course.findUnique({
     where: { slug: params.slug },
     include: {
-      contents: {
+      modules: {
+        orderBy: { order: "asc" },
+        include: {
+          contents: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
+      contents: { // Fallback for legacy items without modules
+        where: { moduleId: null },
         orderBy: { order: "asc" },
       },
     },
@@ -82,38 +91,75 @@ export default async function CourseDetailsPage({
             </div>
           )}
 
-          {/* Contents List */}
+          {/* Module-based Contents List */}
           <div className="bg-white p-6 rounded-lg border shadow-sm">
             <h2 className="text-2xl font-bold mb-6">Course Content</h2>
-            {course.contents.length > 0 ? (
-              <div className="space-y-4">
-                {course.contents.map((content, index) => (
-                  <div
-                    key={content.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{content.title}</h3>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
-                          {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
-                        </p>
-                      </div>
+            <div className="space-y-6">
+              {course.modules.length > 0 ? (
+                course.modules.map((module) => (
+                  <details key={module.id} className="border rounded-lg overflow-hidden group">
+                    <summary className="bg-gray-50 px-4 py-3 font-bold text-gray-900 cursor-pointer list-none flex justify-between items-center hover:bg-gray-100 transition [&::-webkit-details-marker]:hidden">
+                      {module.title}
+                      <span className="transition duration-200 group-open:-rotate-180 text-gray-500">
+                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </span>
+                    </summary>
+                    <div className="divide-y border-t bg-white">
+                      {module.contents.length > 0 ? (
+                        module.contents.map((content, index) => (
+                          <div key={content.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition">
+                            <div className="flex items-center gap-4">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                {index + 1}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-gray-900">{content.title}</h3>
+                                <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
+                                  {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
+                                </p>
+                              </div>
+                            </div>
+                            {content.type === "LESSON" && content.duration && (
+                              <div className="text-sm text-gray-500 font-mono">
+                                {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="p-4 text-sm text-gray-500 italic">No classes in this module yet.</p>
+                      )}
                     </div>
-                    {content.type === "LESSON" && content.duration && (
-                      <div className="text-sm text-gray-500 font-mono">
-                        {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
+                  </details>
+                ))
+              ) : course.contents.length > 0 ? (
+                // Fallback for flat structure 
+                <div className="divide-y border rounded-lg">
+                  {course.contents.map((content, index) => (
+                    <div key={content.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition">
+                      <div className="flex items-center gap-4">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{content.title}</h3>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
+                            {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic">No content available for this course yet.</p>
-            )}
+                      {content.type === "LESSON" && content.duration && (
+                        <div className="text-sm text-gray-500 font-mono">
+                          {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">No content available for this course yet.</p>
+              )}
+            </div>
           </div>
         </div>
 
