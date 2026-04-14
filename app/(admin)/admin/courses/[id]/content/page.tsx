@@ -9,6 +9,7 @@ import { Play, Trophy, FolderOpen, AlertTriangle } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AddModuleForm } from "@/components/admin/AddModuleForm";
 import { ContentActions } from "./ContentActions";
+import { AssignModuleComponent } from "./AssignModuleComponent";
 
 export const dynamic = "force-dynamic";
 
@@ -125,14 +126,29 @@ export default async function ContentManagementPage({
               <AlertTriangle className="w-5 h-5" />
               Unassigned Legacy Content ({course.contents.length})
             </div>
-            <div className="space-y-3 opacity-75">
-               {course.contents.map(content => (
-                 <div key={content.id} className="border border-yellow-300 p-3 rounded bg-white flex justify-between">
-                    <span className="font-semibold text-gray-800">{content.title} ({content.type})</span>
-                    <span className="text-xs text-gray-500">Missing Module ID</span>
-                 </div>
-               ))}
-            </div>
+             <div className="space-y-3 opacity-90">
+                {course.contents.map(content => (
+                  <div key={content.id} className="border border-yellow-300 p-3 rounded bg-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <span className="font-bold text-gray-800 flex items-center gap-2">
+                        {content.title}
+                        <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${content.type === 'LESSON' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                          {content.type}
+                        </span>
+                      </span>
+                      <p className="text-xs text-gray-500 font-medium">Missing Module ID</p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-gray-50 border rounded-lg p-1 pr-2">
+                      <AssignModuleComponent 
+                        contentId={content.id} 
+                        modules={course.modules.map(m => ({ id: m.id, title: m.title }))} 
+                      />
+                      <div className="h-6 w-px bg-gray-300"></div>
+                      <ContentActions courseSlug={course.slug} contentId={content.id} type={content.type as 'LESSON' | 'QUIZ'} />
+                    </div>
+                  </div>
+                ))}
+             </div>
             <p className="text-xs text-yellow-600 mt-4">These items were created before the Module System update. You may need to recreate them into a designated module to display them to students.</p>
           </div>
         )}

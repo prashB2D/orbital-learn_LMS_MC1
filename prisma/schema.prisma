@@ -161,6 +161,7 @@ model Progress {
 
   completed       Boolean     @default(false)
   completedAt     DateTime?
+  lastWatchedTime Int         @default(0) // Seconds tracked locally before syncing
 
   createdAt       DateTime @default(now())
 
@@ -222,3 +223,24 @@ model Certificate {
   pdfUrl        String     // Path to PDF in public/certificates/
   issuedAt      DateTime   @default(now())
 }
+
+// System Logs / Error Tracking
+model SystemIssue {
+  id        String   @id @default(uuid())
+  url       String
+  error     String   @db.Text
+  userInfo  String?  // Can store user email/id if logged in
+  status    String   @default("OPEN") // OPEN, RESOLVED
+
+  createdAt DateTime @default(now())
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+
