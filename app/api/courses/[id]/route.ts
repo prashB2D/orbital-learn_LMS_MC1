@@ -12,30 +12,68 @@
  * Auth Required: Yes (admin only)
  */
 
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    // TODO: GET - Get single course logic
-    // 1. Get courseId from params
-    // 2. Fetch course by id
-    // 3. Check enrollment (if session exists)
-    // 4. Return course details + isEnrolled flag
-
-    return Response.json({ error: "Not implemented yet" }, { status: 501 });
+    const course = await prisma.course.findFirst({ 
+      where: { 
+        OR: [
+          { id: params.id },
+          { slug: params.id }
+        ]
+      } 
+    });
+    if (!course) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ success: true, course }, { status: 200 });
   } catch (error) {
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // TODO: PUT - Update course logic
-    // 1. Check session (admin only)
-    // 2. Validate input with Zod
-    // 3. Update course in database
-    // 4. Return success + courseId
+    await requireAdmin();
+    const body = await request.json();
+    
+    const courseToUpdate = await prisma.course.findFirst({
+      where: { OR: [{ id: params.id }, { slug: params.id }] }
+    });
 
-    return Response.json({ error: "Not implemented yet" }, { status: 501 });
+    if (!courseToUpdate) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    // Partial update
+    const course = await prisma.course.update({
+      where: { id: courseToUpdate.id },
+      data: {
+        title: body.title,
+        description: body.description,
+        aboutCourse: body.aboutCourse,
+        price: body.price ? Number(body.price) : undefined,
+        thumbnail: body.thumbnail,
+      },
+    });
+
+    return NextResponse.json({ success: true, course }, { status: 200 });
   } catch (error) {
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update course" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await requireAdmin();
+    const courseToDelete = await prisma.course.findFirst({
+      where: { OR: [{ id: params.id }, { slug: params.id }] }
+    });
+    
+    if (!courseToDelete) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    await prisma.course.delete({ where: { id: courseToDelete.id } });
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to delete course" }, { status: 500 });
   }
 }

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Play, Trophy, FolderOpen, AlertTriangle } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AddModuleForm } from "@/components/admin/AddModuleForm";
+import { ContentActions } from "./ContentActions";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,7 @@ export default async function ContentManagementPage({
                           )}
                         </div>
                       </div>
+                      <ContentActions courseSlug={course.slug} contentId={content.id} type={content.type as 'LESSON' | 'QUIZ'} />
                     </div>
                   ))
                 ) : (

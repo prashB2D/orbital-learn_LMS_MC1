@@ -6,18 +6,68 @@
  * Auth Required: Yes (verify enrollment)
  */
 
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    // TODO: GET content logic
-    // 1. Get contentId from params
-    // 2. Check session
-    // 3. Verify enrollment in the course
-    // 4. Fetch content + questions
-    // 5. If quiz: hide correct answers before returning
-    // 6. Return content details
-
-    return Response.json({ error: "Not implemented yet" }, { status: 501 });
+    const content = await prisma.content.findUnique({ 
+      where: { id: params.id },
+      include: { questions: { orderBy: { order: "asc" } } }
+    });
+    if (!content) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ success: true, content }, { status: 200 });
   } catch (error) {
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await requireAdmin();
+    const body = await request.json();
+
+    const updateData: any = {
+      title: body.title,
+      videoId: body.videoId,
+      duration: body.duration,
+      attachments: body.attachments,
+      order: body.order,
+      moduleId: body.moduleId || null,
+    };
+
+    if (body.questions) {
+       // Delete existing questions and recreate them to simplify update
+       await prisma.question.deleteMany({ where: { contentId: params.id } });
+       updateData.questions = {
+         create: body.questions.map((q: any, i: number) => ({
+           questionText: q.questionText,
+           options: q.optionType === "2_options" ? q.options.slice(0, 2) : q.options,
+           optionType: q.optionType,
+           correctAnswer: Number(q.correctAnswer),
+           order: i + 1,
+         }))
+       };
+    }
+
+    const content = await prisma.content.update({
+      where: { id: params.id },
+      data: updateData,
+    });
+
+    return NextResponse.json({ success: true, content }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to update content" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    await requireAdmin();
+    await prisma.content.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to delete content" }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { BookOpen, Users, DollarSign, Settings } from "lucide-react";
+import { CourseActions } from "./CourseActions";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +55,11 @@ export default async function CoursesManagementPage() {
                   <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-blue-600"/> {course._count.enrollments}</span>
                   <span className="flex items-center gap-1.5"><BookOpen className="w-4 h-4 text-purple-600"/> {course._count.contents}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-auto">
-                   <Link href={`/admin/courses/${course.slug}/content`} className="text-center py-2 bg-blue-50 text-blue-700 font-semibold rounded hover:bg-blue-100 transition text-sm">
-                     Manage Content
-                   </Link>
-                   <button disabled className="text-center py-2 bg-gray-50 text-gray-400 font-semibold rounded border cursor-not-allowed text-sm flex justify-center items-center gap-1">
-                     <Settings className="w-4 h-4" /> Edit
-                   </button>
+                <div className="grid grid-cols-1 gap-2 mt-auto">
+                  <Link href={`/admin/courses/${course.slug}/content`} className="text-center py-2 bg-blue-50 text-blue-700 font-semibold rounded hover:bg-blue-100 transition text-sm flex items-center justify-center">
+                    Manage Modules & Content
+                  </Link>
+                  <CourseActions courseId={course.id} courseSlug={course.slug} />
                 </div>
               </div>
             </div>
