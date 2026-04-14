@@ -6,7 +6,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 interface LessonFormValues {
@@ -23,6 +23,8 @@ export default function AddLessonPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const moduleId = searchParams.get("moduleId") || undefined;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -52,6 +54,7 @@ export default function AddLessonPage({
 
       const payload = {
         courseId: params.id,
+        moduleId,
         title: data.title,
         videoId,
         duration: Math.round(Number(data.duration) * 60), // Convert minutes to absolute integer seconds
@@ -137,7 +140,7 @@ export default function AddLessonPage({
         {/* Attachments */}
         <div>
           <label className="block font-semibold mb-2">
-            Attachments (Google Drive links, one per line)
+            Notes Link (Drive URL) (Optional)
           </label>
           <textarea
             {...register("attachments")}

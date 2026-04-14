@@ -62,6 +62,7 @@ model Course {
   aboutCourse   String?
 
   // Relations
+  modules       Module[]
   contents      Content[]
   enrollments   Enrollment[]
   quizAttempts  QuizAttempt[]
@@ -71,11 +72,31 @@ model Course {
   updatedAt     DateTime @updatedAt
 }
 
+// Modules (Group Classes & Quizzes)
+model Module {
+  id            String   @id @default(uuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  title         String
+  order         Int
+
+  // Relations
+  contents      Content[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+
 // Contents (Lessons & Quizzes)
 model Content {
   id            String      @id @default(uuid())
   courseId      String
   course        Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  moduleId      String?     // Made optional for backward compatibility
+  module        Module?     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   type          ContentType  // LESSON or QUIZ
   title         String
@@ -103,6 +124,7 @@ model Question {
 
   questionText    String
   options         String[] // ["Option 1", "Option 2", ...]
+  optionType      String   @default("4_options") // "2_options" or "4_options"
   correctAnswer   Int      // Index of correct option
   order           Int
 

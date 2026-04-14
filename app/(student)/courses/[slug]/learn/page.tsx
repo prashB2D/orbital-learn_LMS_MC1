@@ -18,22 +18,31 @@ export default async function LearnPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  // 1. Fetch Course and ordered contents
+  // 1. Fetch Course and ordered modules/contents
   const course = await prisma.course.findUnique({
     where: { slug: params.slug },
     include: {
+      modules: {
+        orderBy: { order: "asc" },
+        include: {
+          contents: {
+            orderBy: { order: "asc" },
+            include: {
+              questions: {
+                orderBy: { order: "asc" },
+                select: { id: true, questionText: true, options: true, order: true }
+              }
+            }
+          }
+        }
+      },
       contents: {
+        where: { moduleId: null },
         orderBy: { order: "asc" },
         include: {
           questions: {
             orderBy: { order: "asc" },
-            // Don't leak correctAnswer to the frontend!
-            select: {
-              id: true,
-              questionText: true,
-              options: true,
-              order: true,
-            }
+            select: { id: true, questionText: true, options: true, order: true }
           }
         }
       },
@@ -63,7 +72,15 @@ export default async function LearnPage({
   });
 
   // 4. Attach `completed` booleans manually alongside
-  const hydratedContents = course.contents.map((content) => {
+  const hydratedModules = course.modules.map(module => ({
+    ...module,
+    contents: module.contents.map(content => ({
+      ...content,
+      completed: progressLogs.find((p) => p.contentId === content.id)?.completed || false,
+    }))
+  }));
+
+  const hydratedUnassignedContents = course.contents.map((content) => {
     const log = progressLogs.find((p) => p.contentId === content.id);
     return {
       ...content,
@@ -71,6 +88,6 @@ export default async function LearnPage({
     };
   });
 
-  return <LearnClient course={course} contents={hydratedContents} enrollmentId={enrollment.id} />;
+  return <LearnClient course={course} modules={hydratedModules} unassignedContents={hydratedUnassignedContents} enrollmentId={enrollment.id} />;
 }
 

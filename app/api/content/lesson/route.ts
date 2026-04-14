@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = addLessonSchema.parse(body);
-    const { courseId, title, videoId, duration, attachments = [], order } = validatedData;
+    const { courseId, moduleId, title, videoId, duration, attachments = [], order } = validatedData;
 
     // Verify course exists by ID or Slug resiliently natively
     const course = await prisma.course.findFirst({
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     const lesson = await prisma.content.create({
       data: {
         courseId: course.id,
+        moduleId: moduleId || null,
         type: "LESSON",
         title,
         videoId,

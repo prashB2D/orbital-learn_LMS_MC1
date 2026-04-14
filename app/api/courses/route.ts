@@ -143,9 +143,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle validation errors from Zod
-    if (error instanceof Error && error.message.includes("validation")) {
+    if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(
-        { error: "Invalid input. Please check your data." },
+        { error: "Invalid input: Please make sure all fields, including the thumbnail image, are provided." },
         { status: 400 }
       );
     }
