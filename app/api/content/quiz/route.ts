@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Validate input with Zod
     const validatedData = addQuizSchema.parse(body);
-    const { courseId, title, order, questions } = validatedData;
+    const { courseId, moduleId, title, order, questions } = validatedData;
 
     // Verify course exists
     const course = await prisma.course.findFirst({
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     const quiz = await prisma.content.create({
       data: {
         courseId: course.id,
+        moduleId: moduleId || null,
         type: "QUIZ",
         title,
         order,
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
           create: questions.map((q) => ({
             questionText: q.questionText,
             options: q.options,
+            optionType: q.optionType,
             correctAnswer: q.correctAnswer,
             order: q.order,
           })),

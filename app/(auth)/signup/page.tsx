@@ -140,12 +140,19 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p className="text-center text-sm">
-        Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 hover:underline font-semibold">
-          Sign in
-        </Link>
-      </p>
+      <div className="text-center text-sm flex flex-col gap-3">
+        <div>
+          Already have an account?{" "}
+          <Link href="/login" className="text-blue-600 hover:underline font-semibold">
+            Login
+          </Link>
+        </div>
+        <div>
+          <Link href="/" className="text-gray-500 font-semibold hover:text-gray-700 underline">
+            Back to Home
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

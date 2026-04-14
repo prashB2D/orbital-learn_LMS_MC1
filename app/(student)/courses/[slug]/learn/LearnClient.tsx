@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import VideoPlayer from "@/components/video/video-player";
 import { QuizComponent } from "@/components/quiz/quiz-component";
-import { CheckCircle2, Circle, PlayCircle, FileQuestion, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, Circle, PlayCircle, FileQuestion, Link as LinkIcon, ChevronDown, ChevronRight, FolderOpen } from "lucide-react";
 
 interface Content {
   id: string;
@@ -16,19 +16,41 @@ interface Content {
   completed: boolean;
 }
 
+interface Module {
+  id: string;
+  title: string;
+  contents: Content[];
+}
+
 interface LearnClientProps {
   course: any;
-  contents: Content[];
+  modules: Module[];
+  unassignedContents: Content[];
   enrollmentId: string;
 }
 
-export default function LearnClient({ course, contents, enrollmentId }: LearnClientProps) {
+export default function LearnClient({ course, modules, unassignedContents, enrollmentId }: LearnClientProps) {
   const router = useRouter();
+  
+  // Flatten contents for active lookup and total progress count
+  const allContents = [
+    ...modules.flatMap(m => m.contents),
+    ...unassignedContents
+  ];
+  
   const [activeContentId, setActiveContentId] = useState<string | null>(
-    contents[0]?.id || null
+    allContents[0]?.id || null
   );
 
-  const activeContent = contents.find((c) => c.id === activeContentId);
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(
+    modules.reduce((acc, m) => ({ ...acc, [m.id]: true }), {})
+  );
+
+  const toggleModule = (id: string) => {
+    setExpandedModules(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const activeContent = allContents.find((c) => c.id === activeContentId);
 
   const handleComplete = async (contentId: string) => {
     try {
@@ -39,14 +61,14 @@ export default function LearnClient({ course, contents, enrollmentId }: LearnCli
       });
 
       if (res.ok) {
-        router.refresh(); // Refresh DB states inside the Server Component
+        router.refresh();
       }
     } catch (error) {
       console.error("Failed to mark complete:", error);
     }
   };
 
-  if (!contents.length) {
+  if (!allContents.length) {
     return (
       <div className="py-12 text-center text-gray-500">
         No content available for this course yet.
@@ -97,7 +119,6 @@ export default function LearnClient({ course, contents, enrollmentId }: LearnCli
               </div>
             </div>
             
-            {/* Manual Completion Toggle */}
             <button
               onClick={() => activeContent && handleComplete(activeContent.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
@@ -122,7 +143,7 @@ export default function LearnClient({ course, contents, enrollmentId }: LearnCli
           {activeContent?.attachments && activeContent.attachments.length > 0 && (
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2">
-                Course Materials
+                Notes & Attachments
               </h3>
               <ul className="space-y-3">
                 {activeContent.attachments.map((link, idx) => (
@@ -150,21 +171,20 @@ export default function LearnClient({ course, contents, enrollmentId }: LearnCli
 
       {/* RIGHT: COURSE CONTENT MENU */}
       <div className="bg-white rounded-lg border shadow-sm flex flex-col h-[calc(100vh-100px)] sticky top-6">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b bg-gray-50 rounded-t-lg">
           <h3 className="font-bold text-gray-900 text-lg">Course Progress</h3>
-          {/* Simple progress bar calculation */}
           <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
             <div
               className="bg-green-500 h-2 rounded-full transition-all duration-500"
               style={{
                 width: `${Math.round(
-                  (contents.filter((c) => c.completed).length / contents.length) * 100
+                  (allContents.filter((c) => c.completed).length / Math.max(allContents.length, 1)) * 100
                 )}%`,
               }}
             ></div>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-right mb-4">
-            {contents.filter((c) => c.completed).length} / {contents.length}{" "}
+            {allContents.filter((c) => c.completed).length} / {allContents.length}{" "}
             completed
           </p>
           <button 
@@ -175,46 +195,98 @@ export default function LearnClient({ course, contents, enrollmentId }: LearnCli
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-2 space-y-1">
-          {contents.map((content, index) => {
-            const isActive = activeContentId === content.id;
-            return (
-              <button
-                key={content.id}
-                onClick={() => setActiveContentId(content.id)}
-                className={`w-full text-left p-3 rounded-lg flex gap-3 transition ${
-                  isActive
-                    ? "bg-blue-50 border border-blue-200"
-                    : "hover:bg-gray-50 border border-transparent"
-                }`}
+        <div className="overflow-y-auto flex-1 p-3 space-y-3">
+          {/* Grouped Modules */}
+          {modules.map((module) => (
+            <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden">
+              <button 
+                 onClick={() => toggleModule(module.id)}
+                 className="w-full bg-gray-50 px-3 py-2.5 flex items-center justify-between hover:bg-gray-100 transition"
               >
-                <div className="mt-0.5 shrink-0">
-                  {content.completed ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  ) : content.type === "LESSON" ? (
-                    <PlayCircle className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <FileQuestion className="w-5 h-5 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p
-                    className={`font-semibold text-sm line-clamp-2 ${
-                      isActive ? "text-blue-700" : "text-gray-700"
-                    }`}
-                  >
-                    {index + 1}. {content.title}
-                  </p>
-                  {content.duration ? (
-                    <p className="text-xs text-gray-500 font-mono mt-1">
-                      {Math.floor(content.duration / 60)}:
-                      {(content.duration % 60).toString().padStart(2, "0")} MIN
-                    </p>
-                  ) : null}
-                </div>
+                 <div className="flex items-center gap-2">
+                    <FolderOpen className="w-4 h-4 text-blue-600" />
+                    <span className="font-bold text-gray-800 text-sm">{module.title}</span>
+                 </div>
+                 {expandedModules[module.id] ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
               </button>
-            );
-          })}
+              
+              {expandedModules[module.id] && (
+                 <div className="p-2 flex flex-col gap-1 bg-white">
+                    {module.contents.length === 0 ? (
+                       <div className="text-xs text-gray-400 p-2 text-center">Empty module</div>
+                    ) : (
+                       module.contents.map((content) => {
+                          const isActive = activeContentId === content.id;
+                          return (
+                             <button
+                                key={content.id}
+                                onClick={() => setActiveContentId(content.id)}
+                                className={`w-full text-left p-2 rounded-md flex gap-3 transition ${
+                                  isActive
+                                    ? "bg-blue-50 border border-blue-200"
+                                    : "hover:bg-gray-50 border border-transparent"
+                                }`}
+                              >
+                                <div className="mt-0.5 shrink-0">
+                                  {content.completed ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  ) : content.type === "LESSON" ? (
+                                    <PlayCircle className="w-4 h-4 text-gray-400" />
+                                  ) : (
+                                    <FileQuestion className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-semibold text-xs truncate ${isActive ? "text-blue-700" : "text-gray-700"}`}>
+                                    {content.title}
+                                  </p>
+                                </div>
+                              </button>
+                          );
+                       })
+                    )}
+                 </div>
+              )}
+            </div>
+          ))}
+
+          {/* Unassigned Contents (legacy support) */}
+          {unassignedContents.length > 0 && (
+             <div className="pt-2">
+               <h4 className="text-xs font-bold text-gray-400 uppercase mb-2 px-1">Other Content</h4>
+               <div className="space-y-1">
+                 {unassignedContents.map((content) => {
+                    const isActive = activeContentId === content.id;
+                    return (
+                       <button
+                          key={content.id}
+                          onClick={() => setActiveContentId(content.id)}
+                          className={`w-full text-left p-2.5 rounded-lg flex gap-3 transition ${
+                            isActive
+                              ? "bg-blue-50 border border-blue-200"
+                              : "hover:bg-gray-50 border border-transparent"
+                          }`}
+                        >
+                          <div className="mt-0.5 shrink-0">
+                            {content.completed ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            ) : content.type === "LESSON" ? (
+                              <PlayCircle className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <FileQuestion className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-semibold text-sm line-clamp-2 ${isActive ? "text-blue-700" : "text-gray-700"}`}>
+                              {content.title}
+                            </p>
+                          </div>
+                        </button>
+                    );
+                 })}
+               </div>
+             </div>
+          )}
         </div>
       </div>
     </div>

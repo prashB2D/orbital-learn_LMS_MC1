@@ -54,10 +54,10 @@ export default async function HomePage() {
               Explore Courses
             </Link>
             <Link
-              href="/signup"
+              href="/login"
               className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"
             >
-              Sign Up Free
+              Sign In
             </Link>
           </div>
         </div>
@@ -140,10 +140,10 @@ export default async function HomePage() {
             Join thousands of students learning new skills on Horbiteal Study
           </p>
           <Link
-            href="/signup"
+            href="/login"
             className="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
           >
-            Sign Up Now
+            Sign In
           </Link>
         </div>
       </section>

@@ -6,6 +6,8 @@
 "use client";
 
 import { useState } from "react";
+import { CldUploadWidget } from "next-cloudinary";
+import { ImagePlus, X } from "lucide-react";
 
 export default function CreateCoursePage() {
   const [title, setTitle] = useState("");
@@ -18,6 +20,12 @@ export default function CreateCoursePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!thumbnail) {
+      setError("Please upload a thumbnail image first.");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -112,17 +120,40 @@ export default function CreateCoursePage() {
           </p>
         </div>
 
-        {/* Thumbnail String Config */}
+        {/* Thumbnail via Cloudinary */}
         <div>
-          <label className="block font-semibold mb-2">Thumbnail URL</label>
-          <input
-            type="url"
-            value={thumbnail}
-            onChange={(e) => setThumbnail(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="https://example.com/image.jpg"
-            required
-          />
+          <label className="block font-semibold mb-2">Thumbnail Image</label>
+          {thumbnail ? (
+            <div className="relative w-64 h-36 rounded-lg overflow-hidden border mb-3">
+              {/* Using standard img to avoid Next.js domain config strictly in admin */}
+              <img src={thumbnail} alt="Thumbnail" className="object-cover w-full h-full" />
+              <button 
+                type="button" 
+                onClick={() => setThumbnail("")}
+                className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow hover:bg-red-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <CldUploadWidget 
+              uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "lms_preset"} 
+              onSuccess={(result: any) => {
+                setThumbnail(result?.info?.secure_url);
+              }}
+            >
+              {({ open }) => (
+                <button
+                  type="button"
+                  onClick={() => open()}
+                  className="w-full flex justify-center items-center gap-2 px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-gray-600 font-medium"
+                >
+                  <ImagePlus className="w-5 h-5" /> Click to Upload Thumbnail
+                </button>
+              )}
+            </CldUploadWidget>
+          )}
+          <input type="hidden" value={thumbnail} required />
         </div>
 
         {/* Submit */}

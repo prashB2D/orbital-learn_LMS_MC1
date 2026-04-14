@@ -6,11 +6,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 
 interface QuestionFormValue {
   questionText: string;
+  optionType: "2_options" | "4_options";
   options: string[];
   correctAnswer: string; // radio buttons use string value
   order: number;
@@ -28,16 +29,19 @@ export default function AddQuizPage({
   params: { id: string };
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const moduleId = searchParams.get("moduleId") || undefined;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { register, control, handleSubmit, formState: { errors } } = useForm<QuizFormValues>({
+  const { register, control, handleSubmit, watch, formState: { errors } } = useForm<QuizFormValues>({
     defaultValues: {
       title: "",
       order: 1,
       questions: [
         {
           questionText: "",
+          optionType: "4_options",
           options: ["", "", "", ""],
           correctAnswer: "0",
           order: 1,
@@ -45,6 +49,8 @@ export default function AddQuizPage({
       ],
     },
   });
+
+  const watchedQuestions = watch("questions");
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -54,6 +60,7 @@ export default function AddQuizPage({
   const handleAddQuestion = () => {
     append({
       questionText: "",
+      optionType: "4_options",
       options: ["", "", "", ""],
       correctAnswer: "0",
       order: fields.length + 1,
@@ -67,11 +74,13 @@ export default function AddQuizPage({
     try {
       const payload = {
         courseId: params.id,
+        moduleId,
         title: data.title,
         order: Number(data.order),
         questions: data.questions.map((q, i) => ({
           questionText: q.questionText,
-          options: q.options,
+          optionType: q.optionType,
+          options: q.optionType === "2_options" ? q.options.slice(0, 2) : q.options,
           correctAnswer: Number(q.correctAnswer),
           order: i + 1,
         })),
@@ -164,11 +173,23 @@ export default function AddQuizPage({
               )}
             </div>
 
+            {/* Option Type Selector */}
+            <div>
+              <label className="block font-semibold mb-2">Option Type</label>
+              <select
+                {...register(`questions.${qIndex}.optionType` as const)}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="4_options">4 Options (MCQ)</option>
+                <option value="2_options">2 Options (True/False type)</option>
+              </select>
+            </div>
+
             {/* Options */}
             <div>
               <label className="block font-semibold mb-2">Options</label>
               <div className="space-y-2">
-                {[0, 1, 2, 3].map((oIndex) => (
+                {[...Array(watchedQuestions[qIndex]?.optionType === "2_options" ? 2 : 4)].map((_, oIndex) => (
                   <div key={oIndex} className="flex items-center gap-2">
                     <input
                       {...register(`questions.${qIndex}.correctAnswer` as const, { required: "Select correct answer" })}
@@ -187,7 +208,7 @@ export default function AddQuizPage({
               </div>
               <p className="text-xs text-gray-500 mt-2">Select the radio button next to the correct option.</p>
               {errors.questions?.[qIndex]?.options && (
-                <p className="text-red-500 text-sm mt-1">All 4 options must be filled.</p>
+                <p className="text-red-500 text-sm mt-1">All options must be filled.</p>
               )}
               {errors.questions?.[qIndex]?.correctAnswer && (
                 <p className="text-red-500 text-sm mt-1">{errors.questions[qIndex]?.correctAnswer?.message}</p>
