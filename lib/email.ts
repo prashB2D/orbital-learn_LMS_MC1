@@ -169,3 +169,78 @@ export async function sendEnrollmentConfirmationEmail(
     throw error;
   }
 }
+
+/**
+ * Send OTP for email verification
+ */
+export async function sendOtpEmail(email: string, otp: string) {
+  try {
+    const transporter = createTransporter();
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.GMAIL_USER,
+      to: email,
+      subject: "Your Verification Code - Horbiteal Study",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; text-align: center;">
+          <h1 style="color: #2563eb;">Email Verification</h1>
+          <p style="font-size: 16px; color: #333;">
+            Use the following One-Time Password (OTP) to verify your account:
+          </p>
+          <div style="background-color: #f3f4f6; margin: 20px auto; padding: 20px; border-radius: 8px; width: fit-content; letter-spacing: 5px;">
+            <h2 style="margin: 0; color: #111; font-size: 32px;">${otp}</h2>
+          </div>
+          <p style="font-size: 14px; color: #dc2626;">
+            ⚠️ This code expires in 10 minutes.
+          </p>
+        </div>
+      `,
+    });
+
+    console.log(`OTP sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error("Failed to send OTP email:", error);
+    throw error;
+  }
+}
+
+/**
+ * Send issue notification email to admins
+ */
+export async function sendIssueNotificationEmail(
+  url: string,
+  errorMessage: string,
+  userInfo: string
+) {
+  try {
+    const transporter = createTransporter();
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM || process.env.GMAIL_USER;
+
+    if (!adminEmail) {
+      throw new Error("Admin email is not configured");
+    }
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM || process.env.GMAIL_USER,
+      to: adminEmail,
+      subject: `New Issue Reported in Horbiteal Study`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #2563eb;">New System Issue Reported</h1>
+          <p><strong>URL:</strong> ${url}</p>
+          <p><strong>User:</strong> ${userInfo}</p>
+          <p><strong>Error:</strong></p>
+          <pre style="background: #f3f4f6; padding: 12px; border-radius: 8px;">${errorMessage}</pre>
+          <p style="color: #6b7280; font-size: 14px;">Please review the issue and resolve it in the admin console.</p>
+        </div>
+      `,
+    });
+
+    console.log("Issue notification email sent to:", adminEmail);
+    return true;
+  } catch (error) {
+    console.error("Failed to send issue notification email:", error);
+    throw error;
+  }
+}

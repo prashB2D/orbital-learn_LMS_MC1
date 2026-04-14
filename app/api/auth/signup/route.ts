@@ -26,8 +26,20 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = signupSchema.parse(body);
-    const { name, password } = validatedData;
-    const email = validatedData.email.toLowerCase();
+    const { name, password, otp } = validatedData;
+    const email = validatedData.email;
+
+    // Verify OTP first
+    const record = await prisma.otpVerification.findUnique({
+      where: { email },
+    });
+
+    if (!record || record.otp !== otp || record.expiresAt < new Date()) {
+      return NextResponse.json(
+        { error: "Invalid or expired OTP" },
+        { status: 400 }
+      );
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -40,6 +52,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // OTP Verified! Delete it to prevent reuse
+    await prisma.otpVerification.delete({ where: { email } });
 
     // Hash password with bcryptjs (salt rounds: 10)
     const hashedPassword = await bcrypt.hash(password, 10);

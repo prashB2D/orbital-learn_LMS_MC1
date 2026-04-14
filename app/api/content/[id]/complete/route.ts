@@ -42,9 +42,11 @@ export async function POST(
         enrollmentId,
         contentId,
         completed: true,
+        completedAt: new Date(),
       },
       update: {
         completed: true,
+        completedAt: new Date(),
       },
     });
 
