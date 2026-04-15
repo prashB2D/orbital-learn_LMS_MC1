@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import VideoPlayer from "@/components/video/video-player";
 import { QuizComponent } from "@/components/quiz/quiz-component";
@@ -48,6 +48,9 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
   );
   
   const [canComplete, setCanComplete] = useState<boolean>(false);
+  const handleReadyToComplete = useCallback((ready: boolean) => {
+    setCanComplete(ready);
+  }, []);
 
   const toggleModule = (id: string) => {
     setExpandedModules(prev => ({ ...prev, [id]: !prev[id] }));
@@ -91,7 +94,7 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
             duration={activeContent.duration || 0}
             lastWatchedTime={activeContent.lastWatchedTime || 0}
             onComplete={() => handleComplete(activeContent.id)}
-            onReadyToComplete={(ready) => setCanComplete(ready)}
+            onReadyToComplete={handleReadyToComplete}
           />
         ) : activeContent?.type === "QUIZ" ? (
           <QuizComponent 

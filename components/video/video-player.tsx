@@ -47,18 +47,19 @@ export default function VideoPlayer({
     }
   };
 
+  useEffect(() => {
+    const requiredTime = duration > 0 ? duration * 0.8 : 0;
+    if (lastWatchedTime >= requiredTime && !hasTriggeredComplete) {
+      setHasTriggeredComplete(true);
+      onReadyToComplete(true);
+    }
+  }, [duration, lastWatchedTime, hasTriggeredComplete, onReadyToComplete]);
+
   const handleProgress = (state: { playedSeconds: number }) => {
     setPlayedSeconds(state.playedSeconds);
 
-    // If active duration exists, check 80% rule
-    if (duration > 0) {
-      const requiredTime = duration * 0.8;
-      if (state.playedSeconds >= requiredTime && !hasTriggeredComplete) {
-        setHasTriggeredComplete(true);
-        onReadyToComplete(true);
-      }
-    } else {
-      // Fallback if duration is unknown
+    const requiredTime = duration > 0 ? duration * 0.8 : 0;
+    if (state.playedSeconds >= requiredTime && !hasTriggeredComplete) {
       setHasTriggeredComplete(true);
       onReadyToComplete(true);
     }
@@ -71,6 +72,13 @@ export default function VideoPlayer({
 
   const handleEnded = () => {
     syncProgress(playedSeconds);
+
+    if (!hasTriggeredComplete) {
+      setHasTriggeredComplete(true);
+      onReadyToComplete(true);
+    }
+
+    onComplete();
   };
 
   useEffect(() => {
