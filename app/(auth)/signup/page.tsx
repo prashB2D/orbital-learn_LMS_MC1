@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, Eye, EyeOff } from "lucide-react";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const passwordVisibilityTimer = useRef<NodeJS.Timeout | null>(null);
+  const confirmPasswordVisibilityTimer = useRef<NodeJS.Timeout | null>(null);
   const [otp, setOtp] = useState("");
   
   const [step, setStep] = useState<"DETAILS" | "OTP">("DETAILS");
@@ -30,6 +34,47 @@ export default function SignupPage() {
 
   const pVals = validatePassword(password);
   const isPasswordStrong = pVals.length && pVals.upper && pVals.lower && pVals.number && pVals.special;
+
+  const handleTogglePassword = () => {
+    setShowPassword((current) => {
+      const next = !current;
+      if (passwordVisibilityTimer.current) {
+        clearTimeout(passwordVisibilityTimer.current);
+      }
+      if (next) {
+        passwordVisibilityTimer.current = setTimeout(() => {
+          setShowPassword(false);
+        }, 1100);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleConfirmPassword = () => {
+    setShowConfirmPassword((current) => {
+      const next = !current;
+      if (confirmPasswordVisibilityTimer.current) {
+        clearTimeout(confirmPasswordVisibilityTimer.current);
+      }
+      if (next) {
+        confirmPasswordVisibilityTimer.current = setTimeout(() => {
+          setShowConfirmPassword(false);
+        }, 1100);
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (passwordVisibilityTimer.current) {
+        clearTimeout(passwordVisibilityTimer.current);
+      }
+      if (confirmPasswordVisibilityTimer.current) {
+        clearTimeout(confirmPasswordVisibilityTimer.current);
+      }
+    };
+  }, []);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +179,24 @@ export default function SignupPage() {
 
             <div>
               <label className="block text-sm font-semibold mb-1">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter your password" required />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pr-12 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleTogglePassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
               
               {/* Password Strength Indicators */}
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-medium">
@@ -148,7 +210,24 @@ export default function SignupPage() {
 
             <div>
               <label className="block text-sm font-semibold mb-1">Confirm Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Confirm your password" required />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full pr-12 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Confirm your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={handleToggleConfirmPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             <button type="submit" disabled={loading || !isPasswordStrong} className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 transition flex justify-center items-center gap-2">
