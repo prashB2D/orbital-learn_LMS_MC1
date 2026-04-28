@@ -12,7 +12,9 @@ import { ImagePlus, X } from "lucide-react";
 export default function CreateCoursePage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const [basePrice, setBasePrice] = useState("");
+  const [offerEnabled, setOfferEnabled] = useState(false);
+  const [offerPercent, setOfferPercent] = useState("");
   const [loading, setLoading] = useState(false);
   const [thumbnail, setThumbnail] = useState("");
   const [aboutCourse, setAboutCourse] = useState("");
@@ -36,7 +38,8 @@ export default function CreateCoursePage() {
         body: JSON.stringify({ 
           title, 
           description, 
-          price: parseFloat(price), 
+          basePrice: parseFloat(basePrice) || 0,
+          offerPercent: offerEnabled && offerPercent ? parseInt(offerPercent) : null,
           thumbnail,
           aboutCourse
         }),
@@ -104,20 +107,71 @@ export default function CreateCoursePage() {
           </p>
         </div>
 
-        {/* Price */}
-        <div>
-          <label className="block font-semibold mb-2">Price (₹)</label>
-          <input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="0"
-            required
-          />
-          <p className="text-xs text-blue-600 font-semibold mt-1">
-            Tip: Setting the price to 0 will gracefully make this course completely free and bypass checkout!
-          </p>
+        {/* Price & Offer */}
+        <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+          <div>
+            <label className="block font-semibold mb-2">Base price (₹)</label>
+            <input
+              type="number"
+              value={basePrice}
+              onChange={(e) => setBasePrice(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg"
+              placeholder="0"
+              required
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="offerEnabled"
+              checked={offerEnabled}
+              onChange={(e) => setOfferEnabled(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <label htmlFor="offerEnabled" className="font-semibold cursor-pointer">Enable offer</label>
+          </div>
+
+          {offerEnabled && (
+            <div>
+              <label className="block font-semibold mb-2">Offer %</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={offerPercent}
+                onChange={(e) => setOfferPercent(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="10"
+              />
+            </div>
+          )}
+
+          {/* Live Preview */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <p className="text-sm text-gray-500 mb-2">Student sees:</p>
+            <div className="flex flex-col gap-1">
+              {offerEnabled && parseInt(offerPercent) > 0 ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-red-500 line-through">
+                      ₹{parseFloat(basePrice || "0").toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                      {offerPercent}% off
+                    </span>
+                  </div>
+                  <p className="text-xl font-bold text-green-600">
+                    ₹{(parseFloat(basePrice || "0") * (1 - parseInt(offerPercent) / 100)).toLocaleString("en-IN")}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xl font-bold text-gray-900">
+                  ₹{parseFloat(basePrice || "0").toLocaleString("en-IN")}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Thumbnail via Cloudinary */}

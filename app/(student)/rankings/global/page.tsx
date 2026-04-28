@@ -13,8 +13,9 @@ export default async function GlobalLeaderboardPage() {
 
   const currentUserId = user.id;
 
-  // 1. Get all attempts for all quizzes
+  // 1. Get all attempts for all quizzes (first attempts only)
   const allAttempts = await prisma.quizAttempt.findMany({
+    where: { isFirstAttempt: true },
     include: { user: { select: { name: true } } },
     orderBy: { score: "desc" },
   });

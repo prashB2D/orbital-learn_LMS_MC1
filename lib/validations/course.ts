@@ -9,7 +9,8 @@ import { z } from "zod";
 export const createCourseSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
   description: z.string().min(1, "Description is required"),
-  price: z.number().min(0, "Price cannot be negative"),
+  basePrice: z.number().min(0, "Base price cannot be negative"),
+  offerPercent: z.number().min(0).max(100).nullable().optional(),
   thumbnail: z.string().min(1, "Thumbnail is required"),
   aboutCourse: z.string().optional(),
 });

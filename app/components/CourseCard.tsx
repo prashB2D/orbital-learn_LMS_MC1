@@ -11,7 +11,9 @@ interface CourseCardProps {
   id: string;
   title: string;
   description: string;
-  price: number;
+  basePrice: number;
+  offerPercent: number | null;
+  finalPrice: number;
   thumbnail: string;
   slug: string;
 }
@@ -20,10 +22,13 @@ export function CourseCard({
   id,
   title,
   description,
-  price,
+  basePrice,
+  offerPercent,
+  finalPrice,
   thumbnail,
   slug,
 }: CourseCardProps) {
+  const safeFinalPrice = finalPrice ?? basePrice ?? 0;
   return (
     <Link href={`/courses/${slug}`}>
       <div className="group h-full rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
@@ -49,13 +54,27 @@ export function CourseCard({
           </div>
 
           {/* Price */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-lg font-bold text-blue-600">
-              ₹{price.toLocaleString("en-IN")}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              Start learning today
-            </p>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-1">
+            {offerPercent && offerPercent > 0 ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-red-500 line-through">
+                    ₹{basePrice.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                    {offerPercent}% off
+                  </span>
+                </div>
+                <p className="text-xl font-bold text-green-600">
+                  ₹{safeFinalPrice.toLocaleString("en-IN")}
+                </p>
+              </>
+            ) : (
+              <p className="text-xl font-bold text-gray-900">
+                ₹{safeFinalPrice.toLocaleString("en-IN")}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">Start learning today</p>
           </div>
         </div>
       </div>

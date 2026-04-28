@@ -11,7 +11,9 @@ interface Course {
   id: string;
   title: string;
   description: string;
-  price: number;
+  basePrice: number;
+  offerPercent: number | null;
+  finalPrice: number;
   thumbnail: string;
   slug: string;
 }

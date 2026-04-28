@@ -8,6 +8,7 @@ import { BookOpen, User, LogOut, LayoutDashboard, Compass, Trophy } from "lucide
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 export default async function StudentLayout({
   children,
@@ -18,6 +19,7 @@ export default async function StudentLayout({
   if (!student) redirect("/login");
 
   return (
+    <RoleGuard allowedRoles={["STUDENT"]}>
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Navbar */}
       <header className="h-16 bg-white border-b px-4 md:px-8 flex items-center justify-between sticky top-0 z-50">
@@ -37,6 +39,9 @@ export default async function StudentLayout({
           </Link>
           <Link href="/rankings/global" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
             <Trophy className="w-4 h-4" /> Leaderboards
+          </Link>
+          <Link href="/profile" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition flex items-center gap-1.5">
+            <User className="w-4 h-4" /> Profile
           </Link>
         </nav>
 
@@ -67,8 +72,13 @@ export default async function StudentLayout({
           <Compass className="w-6 h-6" />
           <span className="text-[10px] font-bold">Explore</span>
         </Link>
+        <Link href="/profile" className="flex flex-col items-center gap-1 text-gray-500 hover:text-blue-600">
+          <User className="w-6 h-6" />
+          <span className="text-[10px] font-bold">Profile</span>
+        </Link>
       </nav>
     </div>
+    </RoleGuard>
   );
 }
 

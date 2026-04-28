@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCourseAccess } from "@/lib/auth";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -25,7 +25,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireAdmin();
+    const contentToUpdate = await prisma.content.findUnique({ where: { id: params.id } });
+    if (!contentToUpdate) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    
+    await requireCourseAccess(contentToUpdate.courseId);
+    
     const body = await request.json();
 
     const updateData: any = {
@@ -35,6 +39,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       attachments: body.attachments,
       order: body.order,
       moduleId: body.moduleId || null,
+      skill: body.skill,
+      xpReward: body.xpReward !== undefined ? Number(body.xpReward) : undefined,
     };
 
     if (body.questions) {
@@ -64,7 +70,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await requireAdmin();
+    const contentToDelete = await prisma.content.findUnique({ where: { id: params.id } });
+    if (!contentToDelete) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    
+    await requireCourseAccess(contentToDelete.courseId);
+    
     await prisma.content.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

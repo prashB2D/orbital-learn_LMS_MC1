@@ -14,6 +14,8 @@ export const addLessonSchema = z.object({
   duration: z.number().int().positive("Duration must be positive"),
   attachments: z.array(z.string()).optional(),
   order: z.number().int().positive("Order must be positive"),
+  skill: z.string().optional(),
+  xpReward: z.number().int().min(0).default(0),
 });
 
 // Add quiz validation

@@ -8,8 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { RazorpayButton } from "@/app/components/payment/razorpay-button";
-import { FreeButton } from "@/app/components/payment/free-button";
+import { CheckoutSidebar } from "@/app/components/payment/CheckoutSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -165,31 +164,18 @@ export default async function CourseDetailsPage({
 
         {/* Sidebar */}
         <div>
-          <div className="bg-white p-6 rounded-lg border shadow-sm sticky top-8">
-            <p className="text-4xl font-bold text-gray-900 mb-6">
-              ₹{course.price.toLocaleString("en-IN")}
-            </p>
-            
-            {isEnrolled ? (
+          {isEnrolled ? (
+            <div className="bg-white p-6 rounded-lg border shadow-sm sticky top-8">
               <Link 
                 href={`/courses/${course.slug}/learn`}
                 className="block w-full text-center bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
               >
                 Start Learning
               </Link>
-            ) : (
-              <div className="space-y-4">
-                {course.price === 0 ? (
-                    <FreeButton courseId={course.id} />
-                ) : (
-                    <RazorpayButton courseId={course.id} amount={course.price} />
-                )}
-                <p className="text-xs text-center text-gray-400">
-                  Full lifetime access • Certificate of completion
-                </p>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <CheckoutSidebar course={course} />
+          )}
         </div>
       </div>
     </div>

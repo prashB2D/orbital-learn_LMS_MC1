@@ -26,9 +26,9 @@ export async function GET(
 
     const currentUserId = currentUser.id;
 
-    // 1. Get all attempts
+    // 1. Get all first attempts
     const attempts = await prisma.quizAttempt.findMany({
-      where: { quizId: params.quizId },
+      where: { quizId: params.quizId, isFirstAttempt: true },
       include: { user: { select: { name: true } } },
       orderBy: { score: "desc" },
     });

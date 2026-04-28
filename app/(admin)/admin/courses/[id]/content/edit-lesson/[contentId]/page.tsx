@@ -11,6 +11,8 @@ interface LessonFormValues {
   attachments: string;
   order: number;
   moduleId: string | null;
+  skill: string;
+  xpReward: number;
 }
 
 export default function EditLessonPage({ params }: { params: { id: string; contentId: string } }) {
@@ -35,6 +37,8 @@ export default function EditLessonPage({ params }: { params: { id: string; conte
             attachments: c.attachments ? c.attachments.join("\\n") : "",
             order: c.order,
             moduleId: c.moduleId || null,
+            skill: c.skill || "",
+            xpReward: c.xpReward || 0,
           });
         }
       } catch (err) {
@@ -61,6 +65,8 @@ export default function EditLessonPage({ params }: { params: { id: string; conte
         attachments: parsedAttachments,
         order: Number(data.order),
         moduleId: data.moduleId,
+        skill: data.skill || undefined,
+        xpReward: Number(data.xpReward),
       };
 
       const response = await fetch(`/api/content/${params.contentId}`, {
@@ -112,6 +118,16 @@ export default function EditLessonPage({ params }: { params: { id: string; conte
         <div>
            <label className="block font-semibold mb-2">Order</label>
            <input {...register("order", { required: "Order is required", min: 1 })} type="number" className="w-full px-4 py-2 border rounded-lg" required />
+        </div>
+
+        <div>
+           <label className="block font-semibold mb-2">Related Skill (Optional)</label>
+           <input {...register("skill")} type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="e.g. React" />
+        </div>
+
+        <div>
+           <label className="block font-semibold mb-2">XP Reward</label>
+           <input {...register("xpReward", { required: "XP Reward is required", min: 0 })} type="number" className="w-full px-4 py-2 border rounded-lg" required />
         </div>
 
         <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">

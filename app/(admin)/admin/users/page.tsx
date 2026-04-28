@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import { Search } from "lucide-react";
+import MentorStudentsView from "./MentorStudentsView";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,27 @@ export default async function UsersPage({
   searchParams: { page?: string; search?: string };
 }) {
   const admin = await getCurrentUser();
-  if (!admin || admin.role !== "ADMIN") {
+  if (!admin || (admin.role !== "ADMIN" && admin.role !== "MENTOR")) {
     redirect("/login");
+  }
+
+  if (admin.role === "MENTOR") {
+    // Fetch courses assigned to the mentor to populate the dropdown
+    const assignments = await prisma.courseAssignment.findMany({
+      where: { mentorId: admin.id },
+      include: { course: { select: { id: true, title: true } } }
+    });
+    const mentorCourses = assignments.map(a => a.course);
+
+    return (
+      <div className="space-y-8 max-w-7xl mx-auto py-8 px-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Students</h1>
+          <p className="text-gray-600">View and manage students in your assigned courses</p>
+        </div>
+        <MentorStudentsView mentorCourses={mentorCourses} />
+      </div>
+    );
   }
 
   const page = parseInt(searchParams.page || "1", 10);
