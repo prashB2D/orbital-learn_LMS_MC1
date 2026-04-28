@@ -8,20 +8,21 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCourseAccess } from "@/lib/auth";
 import { addLessonSchema } from "@/lib/validations/content";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check admin authorization
-    await requireAdmin();
 
     // Parse request body
     const body = await request.json();
 
     // Validate input with Zod
     const validatedData = addLessonSchema.parse(body);
-    const { courseId, moduleId, title, videoId, duration, attachments = [], order } = validatedData;
+    const { courseId, moduleId, title, videoId, duration, attachments = [], order, skill, xpReward } = validatedData;
+
+    // Check course access (admin or assigned mentor)
+    await requireCourseAccess(courseId);
 
     // Verify course exists by ID or Slug resiliently natively
     const course = await prisma.course.findFirst({
@@ -51,6 +52,8 @@ export async function POST(request: NextRequest) {
         duration,
         attachments,
         order,
+        skill,
+        xpReward,
       },
     });
 

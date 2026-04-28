@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       where: { email: session.user.email },
     });
 
-    if (!currentUser || currentUser.role !== "ADMIN") {
+    if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "MENTOR")) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const pageSize = 10;
     const skip = (page - 1) * pageSize;
 
-    const where = search
+    let where: any = search
       ? {
           OR: [
             { name: { contains: search, mode: "insensitive" as const } },
@@ -38,6 +38,25 @@ export async function GET(request: NextRequest) {
           ],
         }
       : {};
+
+    // If user is a mentor, they can only see students enrolled in their assigned courses
+    if (currentUser.role === "MENTOR") {
+      const assignedCourses = await prisma.courseAssignment.findMany({
+        where: { mentorId: currentUser.id },
+        select: { courseId: true },
+      });
+      const courseIds = assignedCourses.map((c) => c.courseId);
+      
+      where = {
+        ...where,
+        role: "STUDENT",
+        enrollments: {
+          some: {
+            courseId: { in: courseIds }
+          }
+        }
+      };
+    }
 
     const users = await prisma.user.findMany({
       where,

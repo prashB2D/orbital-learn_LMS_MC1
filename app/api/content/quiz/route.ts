@@ -8,13 +8,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCourseAccess } from "@/lib/auth";
 import { addQuizSchema } from "@/lib/validations/content";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Check session (admin only)
-    await requireAdmin();
 
     // 2. Parse request body
     const body = await request.json();
@@ -22,6 +20,9 @@ export async function POST(request: NextRequest) {
     // 3. Validate input with Zod
     const validatedData = addQuizSchema.parse(body);
     const { courseId, moduleId, title, order, questions } = validatedData;
+
+    // 1. Check session (course access)
+    await requireCourseAccess(courseId);
 
     // Verify course exists
     const course = await prisma.course.findFirst({

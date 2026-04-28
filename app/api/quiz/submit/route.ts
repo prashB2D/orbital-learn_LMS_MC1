@@ -59,23 +59,27 @@ export async function POST(request: NextRequest) {
     const score = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
     const skippedCount = Math.max(0, questions.length - Object.keys(answers).length);
 
-    // Points Calc (Per-Course Schema)
-    const maxTime = quiz.duration || 300; // default 5 min
-    const validTimeTaken = Math.min(Math.max(timeTaken, 0), maxTime); 
-    
-    let pointsEarned = correctCount * 10;
-    pointsEarned += 20; // Completion Bonus
-    
-    if (maxTime > 0) {
-      pointsEarned += ((maxTime - validTimeTaken) / maxTime) * 5; // Time bonus
-    }
-
     // 3. Increment attempt tracker 
     const previousAttempts = await prisma.quizAttempt.count({
       where: { userId: user.id, quizId }
     });
     
     const attemptNumber = previousAttempts + 1;
+    const isFirstAttempt = attemptNumber === 1;
+
+    // Points Calc (Per-Course Schema)
+    const maxTime = quiz.duration || 300; // default 5 min
+    const validTimeTaken = Math.min(Math.max(timeTaken, 0), maxTime); 
+    
+    let pointsEarned = 0;
+    if (isFirstAttempt) {
+      pointsEarned = correctCount * 10;
+      pointsEarned += 20; // Completion Bonus
+      
+      if (maxTime > 0) {
+        pointsEarned += ((maxTime - validTimeTaken) / maxTime) * 5; // Time bonus
+      }
+    }
 
     // 4. Save detailed attempt into DB tracking CourseId for rapid retrieval
     const attempt = await prisma.quizAttempt.create({
@@ -88,7 +92,9 @@ export async function POST(request: NextRequest) {
         score,
         timeTaken: validTimeTaken,
         skippedCount,
-        pointsEarned
+        pointsEarned,
+        isFirstAttempt,
+        timerStartedAt: new Date(Date.now() - (timeTaken * 1000)) // Estimate start time
       }
     });
 

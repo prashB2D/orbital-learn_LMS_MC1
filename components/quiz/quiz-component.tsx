@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Trophy, History, ArrowRight, CheckCircle2, Circle, Eye, RotateCcw } from "lucide-react";
+import { Trophy, History, ArrowRight, CheckCircle2, Circle, Eye, RotateCcw, AlertTriangle } from "lucide-react";
 
 interface Question {
   id: string;
@@ -27,12 +27,14 @@ export function QuizComponent({ quiz, enrollmentId, onComplete }: QuizProps) {
   const [courseContext, setCourseContext] = useState<any>(null);
   const [startTime, setStartTime] = useState<number>(0);
 
+  const [hasStarted, setHasStarted] = useState(false);
+  const [hasAcceptedWarning, setHasAcceptedWarning] = useState(false);
+
   const { register, handleSubmit, reset } = useForm();
 
-  // Fetch past attempts and record start time on mount
+  // Fetch past attempts
   useEffect(() => {
     fetchHistoryAndContext();
-    setStartTime(Date.now());
   }, [quiz.id]);
 
   const fetchHistoryAndContext = async (isManualSubmit = false) => {
@@ -100,7 +102,14 @@ export function QuizComponent({ quiz, enrollmentId, onComplete }: QuizProps) {
   const handleRetry = () => {
     setResult(null);
     reset(); // Clear previous form
-    setStartTime(Date.now()); // Restart timer
+    setHasStarted(false); // Show warning screen again
+    setHasAcceptedWarning(false);
+  };
+
+  const handleStartQuiz = () => {
+    if (!hasAcceptedWarning) return;
+    setHasStarted(true);
+    setStartTime(Date.now());
   };
 
   if (result) {
@@ -200,21 +209,83 @@ export function QuizComponent({ quiz, enrollmentId, onComplete }: QuizProps) {
 
   return (
     <div className="bg-white rounded-lg border">
-      <div className="p-6 border-b flex justify-between items-center">
+      <div className="p-6 border-b flex justify-between items-center bg-gray-50">
         <h2 className="text-2xl font-bold text-gray-900">{quiz.title}</h2>
         {history.length > 0 && (
-          <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+          <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 bg-white px-3 py-1 rounded-full border">
             <History className="w-4 h-4" /> {history.length} Previous Attempts
           </div>
         )}
       </div>
 
       <div className="p-6">
-        {quiz.questions && quiz.questions.length > 0 ? (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {!hasStarted ? (
+          <div className="max-w-2xl mx-auto py-8">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 mb-6 relative overflow-hidden">
+              <AlertTriangle className="absolute -top-6 -right-6 w-32 h-32 text-amber-200/50 -z-0" />
+              <div className="relative z-10 flex items-start gap-4">
+                <div className="bg-amber-100 p-3 rounded-full shrink-0">
+                  <AlertTriangle className="w-8 h-8 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-amber-900 mb-2">
+                    {history.length === 0 ? "Read Before You Start" : "Practice Mode"}
+                  </h3>
+                  
+                  {history.length === 0 ? (
+                    <div className="space-y-4 text-amber-800">
+                      <p className="font-bold text-lg">Only your FIRST attempt will count.</p>
+                      <p>
+                        Your 1st attempt score goes on the leaderboard and earns you XP and coins. 2nd and further attempts are for learning only — they will not change your score or rank.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 text-amber-800">
+                      <p className="font-bold text-lg">This attempt will not affect your score.</p>
+                      <p>
+                        Because you have already taken this quiz, you are now in practice mode. You can retake this as many times as you want to improve your understanding, but your leaderboard rank and XP will not change.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border rounded-xl p-6 shadow-sm">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="pt-1">
+                  <input 
+                    type="checkbox" 
+                    checked={hasAcceptedWarning}
+                    onChange={(e) => setHasAcceptedWarning(e.target.checked)}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                </div>
+                <div className="text-gray-700 font-medium select-none group-hover:text-gray-900 transition">
+                  {history.length === 0 ? (
+                    "I understand. My 2nd and further attempts will only be for my understanding — only my 1st attempt will count for the leaderboard and points."
+                  ) : (
+                    "I understand that this is a practice attempt and will not affect my score."
+                  )}
+                </div>
+              </label>
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={handleStartQuiz}
+                  disabled={!hasAcceptedWarning}
+                  className="px-8 py-4 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  Start Quiz <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : quiz.questions && quiz.questions.length > 0 ? (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-3xl mx-auto">
             {quiz.questions.map((q, index) => (
-              <div key={q.id} className="space-y-4">
-                <h3 className="font-semibold text-lg text-gray-900">
+              <div key={q.id} className="space-y-4 bg-white border p-6 rounded-xl shadow-sm">
+                <h3 className="font-bold text-lg text-gray-900">
                   {index + 1}. {q.questionText}
                 </h3>
                 <div className="space-y-3">
@@ -236,13 +307,13 @@ export function QuizComponent({ quiz, enrollmentId, onComplete }: QuizProps) {
               </div>
             ))}
 
-            <div className="pt-6 border-t">
+            <div className="pt-6 border-t flex justify-end">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full sm:w-auto px-10 py-4 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
               >
-                {loading ? "Submitting..." : "Submit Quiz"} <ArrowRight className="w-5 h-5" />
+                {loading ? "Submitting..." : "Submit Answers"} <CheckCircle2 className="w-5 h-5" />
               </button>
             </div>
           </form>

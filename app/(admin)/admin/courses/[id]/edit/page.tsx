@@ -9,24 +9,41 @@ import { ConfirmDeleteModal } from "@/components/admin/ConfirmDeleteModal";
 export default function EditCoursePage({ params }: { params: { id: string } }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const [basePrice, setBasePrice] = useState("");
+  const [offerEnabled, setOfferEnabled] = useState(false);
+  const [offerPercent, setOfferPercent] = useState("");
   const [loading, setLoading] = useState(false);
   const [thumbnail, setThumbnail] = useState("");
   const [aboutCourse, setAboutCourse] = useState("");
   const [error, setError] = useState("");
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [role, setRole] = useState("STUDENT");
   const router = useRouter();
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const res = await fetch(`/api/courses/${params.id}`);
+        const [res, sessionRes] = await Promise.all([
+          fetch(`/api/courses/${params.id}`),
+          fetch("/api/auth/session")
+        ]);
+        const sessionData = await sessionRes.json();
+        if (sessionData?.user?.role) {
+          setRole(sessionData.user.role);
+        }
+
         const data = await res.json();
         if (data.success) {
           setTitle(data.course.title);
           setDescription(data.course.description);
-          setPrice(data.course.price.toString());
+          setCourseCode(data.course.courseCode);
+          setBasePrice(data.course.basePrice.toString());
+          if (data.course.offerPercent) {
+            setOfferEnabled(true);
+            setOfferPercent(data.course.offerPercent.toString());
+          }
           setThumbnail(data.course.thumbnail);
           setAboutCourse(data.course.aboutCourse || "");
         }
@@ -51,7 +68,8 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
         body: JSON.stringify({ 
           title, 
           description, 
-          price: parseFloat(price), 
+          basePrice: parseFloat(basePrice) || 0,
+          offerPercent: offerEnabled && offerPercent ? parseInt(offerPercent) : null,
           thumbnail,
           aboutCourse
         }),
@@ -61,6 +79,16 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
       
       if (!res.ok) {
         throw new Error(data.error || "Failed to update course");
+      }
+
+      if (courseCode) {
+        const codeRes = await fetch(`/api/admin/courses/${params.id}/code`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseCode })
+        });
+        const codeData = await codeRes.json();
+        if (!codeRes.ok) throw new Error(codeData.error || "Failed to update course code");
       }
 
       router.push(`/admin/courses`);
@@ -106,6 +134,14 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2 border rounded-lg" required />
         </div>
 
+        {role !== "MENTOR" && (
+          <div>
+            <label className="block font-semibold mb-2">Course ID (Code)</label>
+            <input type="text" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} className="w-full px-4 py-2 border rounded-lg font-mono uppercase" required />
+            <p className="text-xs text-gray-500 mt-1">Used for coupon creation and mentor assignments.</p>
+          </div>
+        )}
+
         <div>
           <label className="block font-semibold mb-2">Description</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-4 py-2 border rounded-lg h-24" required />
@@ -116,10 +152,74 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
           <textarea value={aboutCourse} onChange={(e) => setAboutCourse(e.target.value)} className="w-full px-4 py-2 border rounded-lg h-48 font-mono text-sm" />
         </div>
 
-        <div>
-           <label className="block font-semibold mb-2">Price (₹)</label>
-           <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full px-4 py-2 border rounded-lg" required />
-        </div>
+        {/* Price & Offer */}
+        {role !== "MENTOR" && (
+          <div className="space-y-4 border p-4 rounded-lg bg-gray-50">
+            <div>
+              <label className="block font-semibold mb-2">Base price (₹)</label>
+              <input
+                type="number"
+                value={basePrice}
+                onChange={(e) => setBasePrice(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="0"
+                required
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="offerEnabled"
+                checked={offerEnabled}
+                onChange={(e) => setOfferEnabled(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <label htmlFor="offerEnabled" className="font-semibold cursor-pointer">Enable offer</label>
+            </div>
+
+            {offerEnabled && (
+              <div>
+                <label className="block font-semibold mb-2">Offer %</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={offerPercent}
+                  onChange={(e) => setOfferPercent(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="10"
+                />
+              </div>
+            )}
+
+            {/* Live Preview */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500 mb-2">Student sees:</p>
+              <div className="flex flex-col gap-1">
+                {offerEnabled && parseInt(offerPercent) > 0 ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-red-500 line-through">
+                        ₹{parseFloat(basePrice || "0").toLocaleString("en-IN")}
+                      </span>
+                      <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                        {offerPercent}% off
+                      </span>
+                    </div>
+                    <p className="text-xl font-bold text-green-600">
+                      ₹{(parseFloat(basePrice || "0") * (1 - parseInt(offerPercent) / 100)).toLocaleString("en-IN")}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xl font-bold text-gray-900">
+                    ₹{parseFloat(basePrice || "0").toLocaleString("en-IN")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block font-semibold mb-2">Thumbnail Image</label>

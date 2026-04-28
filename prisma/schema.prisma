@@ -15,6 +15,7 @@ datasource db {
 enum UserRole {
   STUDENT
   ADMIN
+  MENTOR
 }
 
 enum ContentType {
@@ -32,163 +33,219 @@ enum PaymentStatus {
 
 // Users
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  password      String
-  name          String
-  role          UserRole @default(STUDENT)
+  id       String   @id @default(uuid())
+  email    String   @unique
+  password String
+  name     String
+  role     UserRole @default(STUDENT)
+
+  // Profile
+  studentId      String?   @unique // HBS-XXXXXX
+  phoneNumber    String?
+  dateOfBirth    DateTime?
+  location       String?
+  bio            String?
+  profilePicture String?
+
+  // Coupons
+  couponUsages CouponUsage[]
+
+  // Notifications
+  notifications Notification[]
 
   // Relations
-  enrollments   Enrollment[]
-  quizAttempts  QuizAttempt[]
-  payments      Payment[]
+  enrollments      Enrollment[]
+  quizAttempts     QuizAttempt[]
+  payments         Payment[]
+  assignedCourses  CourseAssignment[] @relation("MentorAssignments")
+  givenAssignments CourseAssignment[] @relation("AdminAssignments")
+  skills           StudentSkill[]
+  xpLogs           SkillXPLog[]
+  grantedXpLogs    SkillXPLog[]       @relation("GrantedXPLogs")
+
+  // Streaks
+  currentStreak Int             @default(0)
+  longestStreak Int             @default(0)
+  activities    DailyActivity[]
+
+  // Badges
+  earnedBadges  StudentBadge[]
+  awardedBadges StudentBadge[] @relation("BadgeAwarder")
+  createdBadges Badge[]        @relation("BadgeCreator")
+
+  // Coins
+  coinBalance         Int               @default(0)
+  coinAwardLimit      Int               @default(100) // For mentors
+  coinTransactions    CoinTransaction[] @relation("StudentCoins")
+  awardedCoins        CoinTransaction[] @relation("MentorCoinAwards")
+  redemptions         CoinRedemption[]
+  verifiedRedemptions CoinRedemption[]  @relation("RedemptionVerifier")
+
+  // Referrals
+  referralCode      String?    @unique
+  referredBy        String? // The code they used to sign up
+  referralsMade     Referral[] @relation("Referrer")
+  referralReceived  Referral?  @relation("ReferredUser")
+  verifiedReferrals Referral[] @relation("ReferralVerifier")
 
   // Reset password
-  resetToken    String?
+  resetToken       String?
   resetTokenExpiry DateTime?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Courses
 model Course {
-  id            String   @id @default(uuid())
-  title         String
-  description   String
-  price         Float
-  thumbnail     String
-  slug          String   @unique
-  aboutCourse   String?
+  id           String  @id @default(uuid())
+  title        String
+  description  String
+  basePrice    Float   @default(0)
+  offerPercent Int?
+  finalPrice   Float   @default(0)
+  thumbnail    String
+  slug         String  @unique
+  courseCode   String  @unique
+  aboutCourse  String?
 
   // Relations
-  modules       Module[]
-  contents      Content[]
-  enrollments   Enrollment[]
-  quizAttempts  QuizAttempt[]
-  payments      Payment[]
+  modules          Module[]
+  contents         Content[]
+  enrollments      Enrollment[]
+  quizAttempts     QuizAttempt[]
+  payments         Payment[]
+  assignedMentors  CourseAssignment[]
+  coinTransactions CoinTransaction[]
+  coupons          Coupon[] // Course specific coupons
+  couponUsages     CouponUsage[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Modules (Group Classes & Quizzes)
 model Module {
-  id            String   @id @default(uuid())
-  courseId      String
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  title         String
-  order         Int
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  title String
+  order Int
 
   // Relations
-  contents      Content[]
+  contents Content[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
 
 // Contents (Lessons & Quizzes)
 model Content {
-  id            String      @id @default(uuid())
-  courseId      String
-  course        Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  moduleId      String?     // Made optional for backward compatibility
-  module        Module?     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId String? // Made optional for backward compatibility
+  module   Module? @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
-  type          ContentType  // LESSON or QUIZ
-  title         String
-  order         Int
+  type  ContentType // LESSON or QUIZ
+  title String
+  order Int
 
   // Lesson-specific fields
-  videoId       String?     // YouTube videoId
-  duration      Int?        // in seconds
-  attachments   String[]    // Google Drive links as JSON array
+  videoId     String? // YouTube videoId
+  duration    Int? // in seconds
+  attachments String[] // Google Drive links as JSON array
+  skill       String? // e.g., 'React', 'Design', 'Communication'
+  xpReward    Int      @default(0) // Gamification XP
 
   // Relations
-  questions     Question[]  // MCQ questions (only for QUIZ type)
-  progress      Progress[]
-  quizAttempts  QuizAttempt[]
+  questions        Question[] // MCQ questions (only for QUIZ type)
+  progress         Progress[]
+  quizAttempts     QuizAttempt[]
+  coinTransactions CoinTransaction[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Questions (MCQ for Quizzes only)
 model Question {
-  id              String   @id @default(uuid())
-  contentId       String
-  content         Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  id        String  @id @default(uuid())
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  questionText    String
-  options         String[] // ["Option 1", "Option 2", ...]
-  optionType      String   @default("4_options") // "2_options" or "4_options"
-  correctAnswer   Int      // Index of correct option
-  order           Int
+  questionText  String
+  options       String[] // ["Option 1", "Option 2", ...]
+  optionType    String   @default("4_options") // "2_options" or "4_options"
+  correctAnswer Int // Index of correct option
+  order         Int
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 // Enrollments (Student purchases course)
 model Enrollment {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  courseId      String
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   // Relations
-  progress      Progress[]
-  certificate   Certificate?
+  progress    Progress[]
+  certificate Certificate?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, courseId]) // One enrollment per student per course
 }
 
 // Progress (Track lesson/quiz completion)
 model Progress {
-  id              String      @id @default(uuid())
-  enrollmentId    String
-  enrollment      Enrollment  @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
-  contentId       String
-  content         Content     @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  completed       Boolean     @default(false)
+  completed       Boolean   @default(false)
   completedAt     DateTime?
-  lastWatchedTime Int         @default(0) // Seconds tracked locally before syncing
+  lastWatchedTime Int       @default(0) // Seconds tracked locally before syncing
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([enrollmentId, contentId]) // One progress record per content per enrollment
 }
 
 // Quiz Attempts (Multiple attempts per student)
 model QuizAttempt {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  quizId        String
-  quiz          Content  @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId String
+  quiz   Content @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
-  courseId      String
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  attemptNumber Int      // 1, 2, 3, etc.
-  answers       Json     // {questionId: selectedOptionIndex}
-  score         Float    // Percentage (0-100)
-  
-  timeTaken     Int      @default(0) // time taken in seconds
-  skippedCount  Int      @default(0) // unanswered questions
-  pointsEarned  Float    @default(0) // Calculated global points for gamification
+  attemptNumber Int // 1, 2, 3, etc.
+  answers       Json // {questionId: selectedOptionIndex}
+  score         Float // Percentage (0-100)
 
-  createdAt     DateTime @default(now())
+  timeTaken    Int   @default(0) // time taken in seconds
+  skippedCount Int   @default(0) // unanswered questions
+  pointsEarned Float @default(0) // Calculated global points for gamification
+
+  isFirstAttempt Boolean   @default(false)
+  timerStartedAt DateTime?
+
+  createdAt DateTime @default(now())
 
   // High performance aggregates
   @@index([courseId, userId])
@@ -197,40 +254,40 @@ model QuizAttempt {
 
 // Payments (All transactions)
 model Payment {
-  id                  String        @id @default(uuid())
-  userId              String
-  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  courseId            String
-  course              Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  amount              Float
-  razorpayOrderId     String        @unique
-  razorpayPaymentId   String?       @unique
+  amount            Float
+  razorpayOrderId   String  @unique
+  razorpayPaymentId String? @unique
 
-  status              PaymentStatus @default(PENDING)
+  status PaymentStatus @default(PENDING)
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Certificates (PDF generated on 100% completion)
 model Certificate {
-  id            String     @id @default(uuid())
-  enrollmentId  String     @unique
-  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  enrollmentId String     @unique
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
-  pdfUrl        String     // Path to PDF in public/certificates/
-  issuedAt      DateTime   @default(now())
+  pdfUrl   String // Path to PDF in public/certificates/
+  issuedAt DateTime @default(now())
 }
 
 // System Logs / Error Tracking
 model SystemIssue {
-  id        String   @id @default(uuid())
-  url       String
-  error     String   @db.Text
-  userInfo  String?  // Can store user email/id if logged in
-  status    String   @default("OPEN") // OPEN, RESOLVED
+  id       String  @id @default(uuid())
+  url      String
+  error    String  @db.Text
+  userInfo String? // Can store user email/id if logged in
+  status   String  @default("OPEN") // OPEN, RESOLVED
 
   createdAt DateTime @default(now())
 }
@@ -243,4 +300,291 @@ model OtpVerification {
   createdAt DateTime @default(now())
 }
 
+// Course Assignments (Mentor <-> Course)
+model CourseAssignment {
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  mentorId String
+  mentor   User   @relation("MentorAssignments", fields: [mentorId], references: [id], onDelete: Cascade)
+
+  assignedBy String
+  admin      User   @relation("AdminAssignments", fields: [assignedBy], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+
+  @@unique([courseId, mentorId])
+}
+
+// Student Skills (Skill system)
+model StudentSkill {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  skillName    String // Database, Programming, Development, Problem Solving, System Design, Communication
+  totalXP      Int    @default(0)
+  currentLevel Int    @default(0) // 0-10
+
+  isUnlocked Boolean   @default(false)
+  unlockedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, skillName])
+}
+
+enum XPSource {
+  AUTO
+  MANUAL
+}
+
+// XP Logs
+model SkillXPLog {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  skillName String
+  xpGained  Int
+  source    XPSource
+  reason    String
+
+  grantedById String?
+  grantedBy   User?   @relation("GrantedXPLogs", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+// Daily Activity (Streak system)
+model DailyActivity {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date DateTime // Stored at midnight UTC for the day
+
+  videosWatched    Int @default(0)
+  quizzesTaken     Int @default(0)
+  notesDownloaded  Int @default(0)
+  timeSpentMinutes Int @default(0)
+  totalActivities  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
+// Badges System
+enum BadgeType {
+  AUTOMATED
+  MANUAL
+}
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model Badge {
+  id           String      @id @default(uuid())
+  name         String      @unique
+  description  String
+  icon         String // Emoji or URL
+  type         BadgeType   @default(MANUAL)
+  rarity       BadgeRarity @default(COMMON)
+  triggerLogic String? // Used for AUTOMATED badges logic
+
+  createdById String?
+  createdBy   User?   @relation("BadgeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  awardedTo StudentBadge[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StudentBadge {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  badgeId String
+  badge   Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  awardedById String?
+  awardedBy   User?   @relation("BadgeAwarder", fields: [awardedById], references: [id], onDelete: SetNull)
+
+  comment   String?
+  awardedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+// Coin System
+model CoinTransaction {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation("StudentCoins", fields: [userId], references: [id], onDelete: Cascade)
+
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  quizId String?
+  quiz   Content? @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  amount Int
+  rank   Int? // 1, 2, or 3
+  reason String
+
+  awardedById String?
+  awardedBy   User?   @relation("MentorCoinAwards", fields: [awardedById], references: [id], onDelete: SetNull)
+
+  mentorComment String?
+
+  awardedAt DateTime @default(now())
+}
+
+model StoreItem {
+  id          String  @id @default(uuid())
+  name        String
+  description String
+  costInCoins Int
+  imageUrl    String?
+  isUnlimited Boolean @default(false)
+  stockCount  Int     @default(0)
+  isActive    Boolean @default(true)
+
+  redemptions CoinRedemption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RedemptionStatus {
+  PENDING
+  REVIEWING
+  VERIFIED
+  DELIVERED
+  REJECTED
+  COMPLETED
+}
+
+model CoinRedemption {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  itemId String
+  item   StoreItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  coinsRedeemed Int
+  status        RedemptionStatus @default(PENDING)
+  phoneNumber   String
+  notes         String?
+
+  verifiedById String?
+  verifiedBy   User?   @relation("RedemptionVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  verifiedAt DateTime?
+  deliveredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ReferralStatus {
+  PENDING
+  VERIFIED
+  REWARDED
+  REJECTED
+}
+
+model Referral {
+  id String @id @default(uuid())
+
+  referrerId String
+  referrer   User   @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  referredId   String @unique
+  referredUser User   @relation("ReferredUser", fields: [referredId], references: [id], onDelete: Cascade)
+
+  status ReferralStatus @default(PENDING)
+
+  rewardGiven Boolean @default(false)
+  rewardType  String? // e.g. "COINS"
+  rewardValue Int? // e.g. 500
+
+  verifiedById String?
+  verifiedBy   User?   @relation("ReferralVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum CouponScope {
+  UNIVERSAL
+  COURSE_SPECIFIC
+}
+
+model Coupon {
+  id            String       @id @default(uuid())
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Float
+  scope         CouponScope
+  courseId      String?
+  course        Course?      @relation(fields: [courseId], references: [id])
+
+  maxUses    Int?
+  usedCount  Int     @default(0)
+  onePerUser Boolean @default(true)
+  isActive   Boolean @default(true)
+
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  usages CouponUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CouponUsage {
+  id       String @id @default(uuid())
+  couponId String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  discount Float
+  usedAt   DateTime @default(now())
+
+  @@unique([couponId, userId, courseId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String // e.g. "BADGE", "COIN", "LEVEL", "REFERRAL", "REDEMPTION"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

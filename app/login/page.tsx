@@ -57,6 +57,8 @@ export default function LoginPage() {
         const session = await getSession();
         if (session?.user?.role === "ADMIN") {
           window.location.href = "/admin/dashboard";
+        } else if (session?.user?.role === "MENTOR") {
+          window.location.href = "/admin/courses";
         } else {
           window.location.href = "/dashboard";
         }

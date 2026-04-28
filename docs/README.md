@@ -226,3 +226,4 @@ See `DATABASE_SCHEMA.md` for schema details and query examples.
 - No ambiguity - everything is specified clearly
 
 **Ready to start building!** 🚀
+2.0 by prashu

@@ -3,11 +3,12 @@
  * Wrapper for all admin pages
  */
 
-import Link from "next/link";
-import { LogOut, BookOpen, Users, DollarSign, BarChart, Settings, Search } from "lucide-react";
+import { LogOut, BookOpen, Users, DollarSign, BarChart, Settings, Search, Award, GraduationCap, ShoppingBag, Share2, Tag } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton"; // We will create this
+import RoleGuard from "@/components/auth/RoleGuard";
 
 export default async function AdminLayout({
   children,
@@ -15,11 +16,14 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const admin = await getCurrentUser();
-  if (!admin || admin.role !== "ADMIN") {
+  if (!admin || (admin.role !== "ADMIN" && admin.role !== "MENTOR")) {
     redirect("/login");
   }
 
+  const isMentor = admin.role === "MENTOR";
+
   return (
+    <RoleGuard allowedRoles={["ADMIN", "MENTOR"]}>
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col fixed left-0 top-0 bottom-0">
@@ -33,17 +37,19 @@ export default async function AdminLayout({
         </div>
 
         <nav className="flex-1 px-4 mt-6 space-y-1">
-          <Link
-            href="/admin/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
-          >
-            <BarChart className="w-5 h-5" /> Analytics
-          </Link>
+          {!isMentor && (
+            <Link
+              href="/admin/dashboard"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <BarChart className="w-5 h-5" /> Analytics
+            </Link>
+          )}
           <Link
             href="/admin/courses"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
           >
-            <BookOpen className="w-5 h-5" /> Courses
+            <BookOpen className="w-5 h-5" /> {isMentor ? "My Courses" : "Courses"}
           </Link>
           <Link
             href="/admin/users"
@@ -51,12 +57,52 @@ export default async function AdminLayout({
           >
             <Users className="w-5 h-5" /> Students
           </Link>
+          {!isMentor && (
+            <Link
+              href="/admin/mentors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <GraduationCap className="w-5 h-5" /> Mentors
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/transactions"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <DollarSign className="w-5 h-5" /> Transactions
+            </Link>
+          )}
           <Link
-            href="/admin/transactions"
+            href="/admin/badges"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
           >
-            <DollarSign className="w-5 h-5" /> Transactions
+            <Award className="w-5 h-5" /> Badges
           </Link>
+          {!isMentor && (
+            <Link
+              href="/admin/store"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <ShoppingBag className="w-5 h-5" /> Store
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/referrals"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <Share2 className="w-5 h-5" /> Referrals
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/coupons"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <Tag className="w-5 h-5" /> Coupons
+            </Link>
+          )}
         </nav>
 
         <div className="p-4 mt-auto border-t border-white/10">
@@ -98,6 +144,7 @@ export default async function AdminLayout({
         <main className="flex-1 p-8 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </RoleGuard>
   );
 }
 

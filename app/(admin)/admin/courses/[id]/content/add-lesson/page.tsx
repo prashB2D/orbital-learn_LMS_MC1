@@ -15,6 +15,8 @@ interface LessonFormValues {
   duration: number;
   attachments: string;
   order: number;
+  skill: string;
+  xpReward: number;
 }
 
 export default function AddLessonPage({
@@ -35,6 +37,8 @@ export default function AddLessonPage({
       duration: 0,
       attachments: "",
       order: 1,
+      skill: "",
+      xpReward: 10,
     }
   });
 
@@ -60,6 +64,8 @@ export default function AddLessonPage({
         duration: Math.round(Number(data.duration) * 60), // Convert minutes to absolute integer seconds
         attachments: parsedAttachments,
         order: Number(data.order),
+        skill: data.skill || undefined,
+        xpReward: Number(data.xpReward),
       };
 
       const response = await fetch("/api/content/lesson", {
@@ -159,6 +165,32 @@ export default function AddLessonPage({
             placeholder="1"
           />
           {errors.order && <p className="text-red-500 text-sm mt-1">{errors.order.message}</p>}
+        </div>
+
+        {/* Skill */}
+        <div>
+          <label className="block font-semibold mb-2">Related Skill (Optional)</label>
+          <input
+            {...register("skill")}
+            type="text"
+            className="w-full px-4 py-2 border rounded-lg"
+            placeholder="e.g. React, UI Design, Communication"
+          />
+        </div>
+
+        {/* XP Reward */}
+        <div>
+          <label className="block font-semibold mb-2">XP Reward</label>
+          <input
+            {...register("xpReward", { required: "XP Reward is required", min: 0 })}
+            type="number"
+            className="w-full px-4 py-2 border rounded-lg"
+            placeholder="10"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Points awarded to student for completing this lesson.
+          </p>
+          {errors.xpReward && <p className="text-red-500 text-sm mt-1">{errors.xpReward.message}</p>}
         </div>
 
         {/* Submit */}

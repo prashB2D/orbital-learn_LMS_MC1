@@ -41,9 +41,12 @@ export async function GET(request: NextRequest) {
           id: true,
           title: true,
           description: true,
-          price: true,
+          basePrice: true,
+          offerPercent: true,
+          finalPrice: true,
           thumbnail: true,
           slug: true,
+          courseCode: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -56,9 +59,12 @@ export async function GET(request: NextRequest) {
           id: true,
           title: true,
           description: true,
-          price: true,
+          basePrice: true,
+          offerPercent: true,
+          finalPrice: true,
           thumbnail: true,
           slug: true,
+          courseCode: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -93,7 +99,10 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = createCourseSchema.parse(body);
-    const { title, description, price, thumbnail, aboutCourse } = validatedData;
+    const { title, description, basePrice, offerPercent, thumbnail, aboutCourse } = validatedData;
+    const bp = basePrice || 0;
+    const op = offerPercent || 0;
+    const finalPrice = bp - (bp * op / 100);
     
     // Generate slug from title
     let slug = generateSlug(title);
@@ -109,14 +118,29 @@ export async function POST(request: NextRequest) {
       slug = `${slug}-${randomNum}`;
     }
 
+    // Generate courseCode
+    const prefix = title.substring(0, 2).toUpperCase().replace(/[^A-Z]/g, 'X') || 'XX';
+    const coursesCount = await prisma.course.count();
+    let courseCode = `${prefix}-${String(coursesCount + 1).padStart(3, '0')}`;
+    
+    // Check if courseCode exists
+    let existingCode = await prisma.course.findUnique({ where: { courseCode } });
+    while (existingCode) {
+      courseCode = `${prefix}-${String(coursesCount + Math.floor(Math.random() * 10000)).padStart(3, '0')}`;
+      existingCode = await prisma.course.findUnique({ where: { courseCode } });
+    }
+
     // Create course in database
     const course = await prisma.course.create({
       data: {
         title,
         description,
-        price,
+        basePrice: bp,
+        offerPercent: op > 0 ? op : null,
+        finalPrice,
         thumbnail,
         slug,
+        courseCode,
         aboutCourse,
       },
     });

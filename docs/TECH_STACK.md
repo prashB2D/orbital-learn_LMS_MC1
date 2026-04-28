@@ -95,3 +95,5 @@ GMAIL_APP_PASSWORD="..." (optional, app-specific password for Gmail)
 ✅ Razorpay: Commission on successful payments only
 
 **Total Deployment Cost for MVP: ₹0 (just Vercel bandwidth)**
+
+

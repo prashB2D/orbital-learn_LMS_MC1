@@ -84,3 +84,56 @@ export async function requireAdmin() {
   }
   return session;
 }
+
+/**
+ * Check if user is mentor
+ */
+export async function isMentor() {
+  try {
+    const session = await getCurrentSession();
+    return session?.user?.role === "MENTOR";
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Check if user (mentor) has access to course
+ */
+export async function hasCourseAccess(courseId: string) {
+  try {
+    const session = await getCurrentSession();
+    if (!session?.user) return false;
+    
+    // Admins have access to all courses
+    if (session.user.role === "ADMIN") return true;
+    
+    // Mentors only have access to assigned courses
+    if (session.user.role === "MENTOR") {
+      const assignment = await prisma.courseAssignment.findUnique({
+        where: {
+          courseId_mentorId: {
+            courseId,
+            mentorId: session.user.id
+          }
+        }
+      });
+      return !!assignment;
+    }
+    
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Require mentor/admin course access middleware
+ */
+export async function requireCourseAccess(courseId: string) {
+  const hasAccess = await hasCourseAccess(courseId);
+  if (!hasAccess) {
+    throw new Error("Unauthorized - you do not have access to this course");
+  }
+  return await getCurrentSession();
+}

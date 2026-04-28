@@ -27,7 +27,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       } 
     });
     if (!course) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ success: true, course }, { status: 200 });
+    const offerLabel = course.offerPercent && course.offerPercent > 0 ? `${course.offerPercent}% off` : null;
+    return NextResponse.json({ success: true, course: { ...course, offerLabel } }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -51,7 +52,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         title: body.title,
         description: body.description,
         aboutCourse: body.aboutCourse,
-        price: body.price ? Number(body.price) : undefined,
+        basePrice: body.basePrice !== undefined ? Number(body.basePrice) : undefined,
+        offerPercent: body.offerPercent !== undefined ? (body.offerPercent ? Number(body.offerPercent) : null) : undefined,
+        finalPrice: body.basePrice !== undefined ? Number(body.basePrice) - (Number(body.basePrice) * (body.offerPercent ? Number(body.offerPercent) : 0) / 100) : undefined,
         thumbnail: body.thumbnail,
       },
     });
