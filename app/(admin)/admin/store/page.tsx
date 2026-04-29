@@ -14,14 +14,19 @@ export default function AdminStorePage() {
   const [reportData, setReportData] = useState<any>(null);
   const [reportLoading, setReportLoading] = useState(false);
 
-  // Form for item creation
+  // Form for item creation & editing
   const [showItemModal, setShowItemModal] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [cost, setCost] = useState(100);
+  const [baseCoinPrice, setBaseCoinPrice] = useState(100);
+  const [offerEnabled, setOfferEnabled] = useState(false);
+  const [offerPercent, setOfferPercent] = useState(0);
   const [isUnlimited, setIsUnlimited] = useState(false);
   const [stock, setStock] = useState(0);
   const [imageUrl, setImageUrl] = useState("");
+  const [detailHtmlTop, setDetailHtmlTop] = useState("");
+  const [detailHtmlBottom, setDetailHtmlBottom] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -81,19 +86,60 @@ export default function AdminStorePage() {
     }
   };
 
-  const handleCreateItem = async (e: React.FormEvent) => {
+  const openItemModal = (item?: any) => {
+    if (item) {
+      setEditId(item.id);
+      setName(item.name);
+      setDescription(item.description);
+      setBaseCoinPrice(item.baseCoinPrice || item.costInCoins);
+      setOfferPercent(item.offerPercent || 0);
+      setOfferEnabled(item.offerPercent > 0);
+      setIsUnlimited(item.isUnlimited);
+      setStock(item.stockCount);
+      setImageUrl(item.imageUrl || "");
+      setDetailHtmlTop(item.detailHtmlTop || "");
+      setDetailHtmlBottom(item.detailHtmlBottom || "");
+    } else {
+      setEditId(null);
+      setName("");
+      setDescription("");
+      setBaseCoinPrice(100);
+      setOfferEnabled(false);
+      setOfferPercent(0);
+      setIsUnlimited(false);
+      setStock(0);
+      setImageUrl("");
+      setDetailHtmlTop("");
+      setDetailHtmlBottom("");
+    }
+    setShowItemModal(true);
+  };
+
+  const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      id: editId,
+      name,
+      description,
+      baseCoinPrice,
+      offerPercent: offerEnabled ? offerPercent : 0,
+      imageUrl,
+      isUnlimited,
+      stockCount: stock,
+      detailHtmlTop,
+      detailHtmlBottom
+    };
+
     try {
       const res = await fetch("/api/store", {
-        method: "POST",
+        method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, description, costInCoins: cost, isUnlimited, stockCount: stock, imageUrl })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
         setShowItemModal(false);
         fetchData();
-        setName(""); setDescription(""); setCost(100); setIsUnlimited(false); setStock(0); setImageUrl("");
       } else {
         alert(data.error);
       }
@@ -124,6 +170,8 @@ export default function AdminStorePage() {
       console.error(e);
     }
   };
+
+  const liveCalculatedCost = Math.max(0, baseCoinPrice - Math.floor(baseCoinPrice * (offerEnabled ? offerPercent : 0) / 100));
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -217,7 +265,7 @@ export default function AdminStorePage() {
       {activeTab === "INVENTORY" && (
         <div>
           <div className="flex justify-end mb-4">
-            <button onClick={() => setShowItemModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition">
+            <button onClick={() => openItemModal()} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition">
               <Plus className="w-4 h-4"/> Add Item
             </button>
           </div>
@@ -231,6 +279,7 @@ export default function AdminStorePage() {
                 <div key={item.id} className={`bg-white border rounded-xl overflow-hidden shadow-sm flex flex-col group relative ${!item.isActive ? 'opacity-50' : ''}`}>
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10">
                     <button onClick={() => toggleActive(item.id, item.isActive)} className="bg-white/80 backdrop-blur p-1.5 rounded-lg text-gray-600 hover:text-blue-600 shadow-sm text-xs font-bold">{item.isActive ? 'Disable' : 'Enable'}</button>
+                    <button onClick={() => openItemModal(item)} className="bg-white/80 backdrop-blur p-1.5 rounded-lg text-green-600 hover:text-green-700 shadow-sm"><Edit className="w-4 h-4"/></button>
                     <button onClick={() => deleteItem(item.id)} className="bg-white/80 backdrop-blur p-1.5 rounded-lg text-red-600 hover:text-red-700 shadow-sm"><Trash className="w-4 h-4"/></button>
                   </div>
                   <div className="h-32 bg-gray-100 flex items-center justify-center text-4xl border-b relative">
@@ -351,12 +400,12 @@ export default function AdminStorePage() {
 
       {showItemModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold">Add Store Item</h2>
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+              <h2 className="text-xl font-bold">{editId ? "Edit Store Item" : "Add Store Item"}</h2>
               <button onClick={() => setShowItemModal(false)} className="text-gray-400 hover:bg-gray-100 p-1 rounded-full"><XCircle className="w-5 h-5"/></button>
             </div>
-            <form onSubmit={handleCreateItem} className="p-6 space-y-4">
+            <form onSubmit={handleSaveItem} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">Item Name</label>
                 <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border px-3 py-2 rounded-lg" />
@@ -369,11 +418,55 @@ export default function AdminStorePage() {
                 <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
                 <textarea required value={description} onChange={e => setDescription(e.target.value)} className="w-full border px-3 py-2 rounded-lg h-20" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Cost (Coins)</label>
-                  <input required type="number" min="1" value={cost} onChange={e => setCost(Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
+
+              {/* Pricing Section */}
+              <div className="bg-gray-50 p-4 rounded-xl border space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Base Price (coins)</label>
+                    <input required type="number" min="1" value={baseCoinPrice} onChange={e => setBaseCoinPrice(Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
+                  </div>
+                  <div className="flex items-center gap-2 pt-5">
+                    <label className="text-sm font-bold text-gray-700">Enable Offer</label>
+                    <input type="checkbox" checked={offerEnabled} onChange={e => setOfferEnabled(e.target.checked)} className="w-5 h-5" />
+                  </div>
+                  {offerEnabled && (
+                    <div className="flex-1">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Offer % (0-100)</label>
+                      <input required type="number" min="0" max="100" value={offerPercent} onChange={e => setOfferPercent(Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
+                    </div>
+                  )}
                 </div>
+
+                <div className="p-3 bg-white border rounded-lg flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-500">Live Preview</span>
+                  <div className="flex items-center gap-3">
+                    {offerEnabled && offerPercent > 0 ? (
+                      <>
+                        <span className="text-sm font-bold text-red-400 line-through">{baseCoinPrice}</span>
+                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-bold">{offerPercent}% OFF</span>
+                      </>
+                    ) : null}
+                    <span className="text-lg font-black text-green-600">{liveCalculatedCost} Coins</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* HTML Detail Blocks */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Detail Block — Top Right</label>
+                  <p className="text-xs text-gray-500 mb-2">Shown right of image in card detail view. Accepts HTML.</p>
+                  <textarea value={detailHtmlTop} onChange={e => setDetailHtmlTop(e.target.value)} maxLength={5000} className="w-full border px-3 py-2 rounded-lg h-32 font-mono text-sm" placeholder="<p>Extra info...</p>" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Detail Block — Bottom Left</label>
+                  <p className="text-xs text-gray-500 mb-2">Shown below image in card detail view. Accepts HTML.</p>
+                  <textarea value={detailHtmlBottom} onChange={e => setDetailHtmlBottom(e.target.value)} maxLength={5000} className="w-full border px-3 py-2 rounded-lg h-32 font-mono text-sm" placeholder="<p>More details...</p>" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Unlimited Stock?</label>
                   <select value={isUnlimited ? "yes" : "no"} onChange={e => setIsUnlimited(e.target.value === "yes")} className="w-full border px-3 py-2 rounded-lg bg-white">
@@ -381,16 +474,16 @@ export default function AdminStorePage() {
                     <option value="no">No</option>
                   </select>
                 </div>
+                {!isUnlimited && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Stock Count</label>
+                    <input required type="number" min="0" value={stock} onChange={e => setStock(Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
+                  </div>
+                )}
               </div>
-              {!isUnlimited && (
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Stock Count</label>
-                  <input required type="number" min="0" value={stock} onChange={e => setStock(Number(e.target.value))} className="w-full border px-3 py-2 rounded-lg" />
-                </div>
-              )}
-              <div className="pt-4 flex justify-end gap-2 border-t">
+              <div className="pt-4 flex justify-end gap-2 border-t mt-4">
                 <button type="button" onClick={() => setShowItemModal(false)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                <button type="submit" className="px-4 py-2 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Create Item</button>
+                <button type="submit" className="px-4 py-2 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">{editId ? "Save Changes" : "Create Item"}</button>
               </div>
             </form>
           </div>

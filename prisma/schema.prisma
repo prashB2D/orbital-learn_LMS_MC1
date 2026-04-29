@@ -108,6 +108,7 @@ model Course {
   slug         String  @unique
   courseCode   String  @unique
   aboutCourse  String?
+  hasFreeTrialContent Boolean @default(false)
 
   // Relations
   modules          Module[]
@@ -159,6 +160,7 @@ model Content {
   attachments String[] // Google Drive links as JSON array
   skill       String? // e.g., 'React', 'Design', 'Communication'
   xpReward    Int      @default(0) // Gamification XP
+  isFreeTrial Boolean  @default(false)
 
   // Relations
   questions        Question[] // MCQ questions (only for QUIZ type)
@@ -244,6 +246,8 @@ model QuizAttempt {
 
   isFirstAttempt Boolean   @default(false)
   timerStartedAt DateTime?
+  timerStoppedAt DateTime?
+  questionTimes  Json?
 
   createdAt DateTime @default(now())
 
@@ -436,9 +440,11 @@ model CoinTransaction {
 
   courseId String?
   course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  externalCourseName String?
 
   quizId String?
   quiz   Content? @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  externalQuizRef String?
 
   amount Int
   rank   Int? // 1, 2, or 3
@@ -453,14 +459,18 @@ model CoinTransaction {
 }
 
 model StoreItem {
-  id          String  @id @default(uuid())
-  name        String
-  description String
-  costInCoins Int
-  imageUrl    String?
-  isUnlimited Boolean @default(false)
-  stockCount  Int     @default(0)
-  isActive    Boolean @default(true)
+  id              String  @id @default(uuid())
+  name            String
+  description     String
+  baseCoinPrice   Int     @default(0)
+  offerPercent    Int     @default(0)
+  costInCoins     Int
+  imageUrl        String?
+  isUnlimited     Boolean @default(false)
+  stockCount      Int     @default(0)
+  isActive        Boolean @default(true)
+  detailHtmlTop   String?
+  detailHtmlBottom String?
 
   redemptions CoinRedemption[]
 
@@ -584,7 +594,9 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
-  type      String // e.g. "BADGE", "COIN", "LEVEL", "REFERRAL", "REDEMPTION"
+  type      String // e.g. "BADGE", "COIN", "LEVEL", "REFERRAL", "REDEMPTION", "XP"
+  payload   Json?
   isRead    Boolean  @default(false)
+  seen      Boolean  @default(false)
   createdAt DateTime @default(now())
 }

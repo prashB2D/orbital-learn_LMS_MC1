@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Validate input with Zod
     const validatedData = addLessonSchema.parse(body);
-    const { courseId, moduleId, title, videoId, duration, attachments = [], order, skill, xpReward } = validatedData;
+    const { courseId, moduleId, title, videoId, duration, attachments = [], order, skill, xpReward, isFreeTrial } = validatedData;
 
     // Check course access (admin or assigned mentor)
     await requireCourseAccess(courseId);
@@ -54,8 +54,17 @@ export async function POST(request: NextRequest) {
         order,
         skill,
         xpReward,
+        isFreeTrial,
       },
     });
+
+    // Update hasFreeTrialContent if this lesson is a free trial
+    if (isFreeTrial && !course.hasFreeTrialContent) {
+      await prisma.course.update({
+        where: { id: course.id },
+        data: { hasFreeTrialContent: true }
+      });
+    }
 
     return NextResponse.json(
       {

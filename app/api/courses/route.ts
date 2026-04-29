@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
           thumbnail: true,
           slug: true,
           courseCode: true,
+          hasFreeTrialContent: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
           thumbnail: true,
           slug: true,
           courseCode: true,
+          hasFreeTrialContent: true,
         },
         orderBy: {
           createdAt: "desc",

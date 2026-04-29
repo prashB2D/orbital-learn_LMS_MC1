@@ -44,6 +44,11 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
   const [isAwardingCoins, setIsAwardingCoins] = useState(false);
   const [coinAwardAmount, setCoinAwardAmount] = useState<number>(0);
   const [coinAwardReason, setCoinAwardReason] = useState("");
+  const [awardMode, setAwardMode] = useState<"LMS" | "EXTERNAL">("LMS");
+  const [selectedCoinCourseId, setSelectedCoinCourseId] = useState("");
+  const [selectedCoinQuizId, setSelectedCoinQuizId] = useState("");
+  const [externalCourseName, setExternalCourseName] = useState("");
+  const [externalQuizRef, setExternalQuizRef] = useState("");
 
   const fetchBadges = async () => {
     try {
@@ -168,15 +173,26 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
 
   const handleAwardCoinsSubmit = async () => {
     if (!coinAwardAmount || !coinAwardReason) return;
+    
+    const payload: any = {
+      studentId: selectedStudent?.id,
+      amount: coinAwardAmount,
+      reason: coinAwardReason
+    };
+
+    if (awardMode === "LMS") {
+      if (selectedCoinCourseId) payload.courseId = selectedCoinCourseId;
+      if (selectedCoinQuizId) payload.quizId = selectedCoinQuizId;
+    } else {
+      if (externalCourseName) payload.externalCourseName = externalCourseName;
+      if (externalQuizRef) payload.externalQuizRef = externalQuizRef;
+    }
+
     try {
       const res = await fetch("/api/mentor/coins/award", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId: selectedStudent?.id,
-          amount: coinAwardAmount,
-          reason: coinAwardReason
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
@@ -548,6 +564,76 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              <div className="flex gap-4 mb-4 bg-gray-100 p-1 rounded-lg">
+                <button 
+                  onClick={() => setAwardMode("LMS")}
+                  className={`flex-1 py-1.5 text-sm font-bold rounded-md transition ${awardMode === "LMS" ? "bg-white shadow-sm text-gray-900" : "text-gray-500"}`}
+                >LMS Quiz</button>
+                <button 
+                  onClick={() => setAwardMode("EXTERNAL")}
+                  className={`flex-1 py-1.5 text-sm font-bold rounded-md transition ${awardMode === "EXTERNAL" ? "bg-white shadow-sm text-gray-900" : "text-gray-500"}`}
+                >Live / External Quiz</button>
+              </div>
+
+              {awardMode === "LMS" ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Course (Optional)</label>
+                    <select
+                      value={selectedCoinCourseId}
+                      onChange={(e) => setSelectedCoinCourseId(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                    >
+                      <option value="">None</option>
+                      {selectedStudent?.courses.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Quiz (Optional)</label>
+                    <select
+                      value={selectedCoinQuizId}
+                      onChange={(e) => setSelectedCoinQuizId(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                    >
+                      <option value="">None</option>
+                      {selectedStudent?.quizAttempts
+                        .filter((qa: any) => !selectedCoinCourseId || qa.courseId === selectedCoinCourseId)
+                        .map((qa: any) => ({ id: qa.quiz?.id || qa.quizId, title: qa.quiz?.title || 'Unknown' }))
+                        .filter((v: any, i: any, a: any) => a.findIndex((t: any) => t.id === v.id) === i)
+                        .map((quiz: any) => (
+                          <option key={quiz.id} value={quiz.id}>{quiz.title}</option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Course Name</label>
+                    <input 
+                      type="text"
+                      value={externalCourseName}
+                      onChange={(e) => setExternalCourseName(e.target.value)}
+                      placeholder="e.g. Full Stack Development"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Quiz / Session Reference</label>
+                    <input 
+                      type="text"
+                      value={externalQuizRef}
+                      onChange={(e) => setExternalQuizRef(e.target.value)}
+                      placeholder="e.g. LIVE-2026-04-29 or React Hooks Session"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"
+                    />
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Amount</label>
                 <input 

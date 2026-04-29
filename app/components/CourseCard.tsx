@@ -16,6 +16,7 @@ interface CourseCardProps {
   finalPrice: number;
   thumbnail: string;
   slug: string;
+  hasFreeTrialContent?: boolean;
 }
 
 export function CourseCard({
@@ -27,11 +28,18 @@ export function CourseCard({
   finalPrice,
   thumbnail,
   slug,
+  hasFreeTrialContent,
 }: CourseCardProps) {
   const safeFinalPrice = finalPrice ?? basePrice ?? 0;
   return (
     <Link href={`/courses/${slug}`}>
-      <div className="group h-full rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+      <div className="group h-full rounded-lg border border-gray-200 bg-white overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer relative">
+        {/* Preview Badge */}
+        {hasFreeTrialContent && (
+          <div className="absolute top-2 right-2 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+            Preview Available
+          </div>
+        )}
         {/* Course Thumbnail */}
         <div className="relative w-full h-48 bg-gray-100 overflow-hidden">
           <Image
@@ -74,7 +82,15 @@ export function CourseCard({
                 ₹{safeFinalPrice.toLocaleString("en-IN")}
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">Start learning today</p>
+            {hasFreeTrialContent ? (
+               <button className="mt-2 w-full text-center bg-blue-50 text-blue-600 hover:bg-blue-100 py-1.5 rounded text-sm font-bold transition">
+                 Preview / Buy
+               </button>
+            ) : (
+               <button className="mt-2 w-full text-center bg-gray-50 text-gray-700 border hover:bg-gray-100 py-1.5 rounded text-sm font-bold transition">
+                 Buy Now
+               </button>
+            )}
           </div>
         </div>
       </div>

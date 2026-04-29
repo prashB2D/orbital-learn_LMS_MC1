@@ -16,6 +16,7 @@ export const addLessonSchema = z.object({
   order: z.number().int().positive("Order must be positive"),
   skill: z.string().optional(),
   xpReward: z.number().int().min(0).default(0),
+  isFreeTrial: z.boolean().default(false),
 });
 
 // Add quiz validation
