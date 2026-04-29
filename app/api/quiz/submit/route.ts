@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { logDailyActivity } from "@/lib/streak-engine";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,15 +27,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse specific shapes explicitly
-    const { quizId, answers, timeTaken = 0 } = await request.json();
+    const { attemptId, answers, questionTimes, timeTaken = 0 } = await request.json();
 
-    if (!quizId || !answers) {
+    if (!attemptId || !answers) {
       return NextResponse.json({ error: "Missing payload params" }, { status: 400 });
+    }
+
+    const attempt = await prisma.quizAttempt.findUnique({
+      where: { id: attemptId }
+    });
+
+    if (!attempt || attempt.userId !== user.id) {
+       return NextResponse.json({ error: "Attempt not found or unauthorized" }, { status: 404 });
     }
 
     // 0. Fetch the quiz itself to get its courseId and duration
     const quiz = await prisma.content.findUnique({
-      where: { id: quizId },
+      where: { id: attempt.quizId },
       select: { courseId: true, duration: true }
     });
 
@@ -44,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Fetch source questions to evaluate correctness securely serverside
     const questions = await prisma.question.findMany({
-      where: { contentId: quizId }
+      where: { contentId: attempt.quizId }
     });
 
     // 2. Score evaluation
@@ -59,20 +68,13 @@ export async function POST(request: NextRequest) {
     const score = questions.length > 0 ? (correctCount / questions.length) * 100 : 0;
     const skippedCount = Math.max(0, questions.length - Object.keys(answers).length);
 
-    // 3. Increment attempt tracker 
-    const previousAttempts = await prisma.quizAttempt.count({
-      where: { userId: user.id, quizId }
-    });
-    
-    const attemptNumber = previousAttempts + 1;
-    const isFirstAttempt = attemptNumber === 1;
-
     // Points Calc (Per-Course Schema)
     const maxTime = quiz.duration || 300; // default 5 min
     const validTimeTaken = Math.min(Math.max(timeTaken, 0), maxTime); 
     
     let pointsEarned = 0;
-    if (isFirstAttempt) {
+    // Only award XP if first attempt
+    if (attempt.isFirstAttempt) {
       pointsEarned = correctCount * 10;
       pointsEarned += 20; // Completion Bonus
       
@@ -81,28 +83,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. Save detailed attempt into DB tracking CourseId for rapid retrieval
-    const attempt = await prisma.quizAttempt.create({
+    // 4. Update the pending attempt in DB
+    const updatedAttempt = await prisma.quizAttempt.update({
+      where: { id: attemptId },
       data: {
-        userId: user.id,
-        quizId,
-        courseId: quiz.courseId,
-        attemptNumber,
         answers,
         score,
         timeTaken: validTimeTaken,
         skippedCount,
         pointsEarned,
-        isFirstAttempt,
-        timerStartedAt: new Date(Date.now() - (timeTaken * 1000)) // Estimate start time
+        timerStoppedAt: new Date(),
+        questionTimes: questionTimes || null
       }
     });
+
+    // Auto Progress if score >= 60
+    if (score >= 60) {
+      // Find enrollment
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId: user.id, courseId: quiz.courseId } }
+      });
+      if (enrollment) {
+        await prisma.progress.upsert({
+          where: { enrollmentId_contentId: { enrollmentId: enrollment.id, contentId: attempt.quizId } },
+          create: { enrollmentId: enrollment.id, contentId: attempt.quizId, completed: true, completedAt: new Date() },
+          update: { completed: true, completedAt: new Date() }
+        });
+      }
+    }
+
+    // Daily Activity Logging (Heatmap + Streak trigger)
+    if (attempt.isFirstAttempt) {
+      await logDailyActivity(user.id, "quiz", 1);
+    }
 
     return NextResponse.json({
       success: true,
       score,
       pointsEarned,
-      attemptNumber,
+      attemptNumber: attempt.attemptNumber,
       attemptId: attempt.id
     });
 

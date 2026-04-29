@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { addXP, SKILL_NAMES } from "@/lib/skills-engine";
 import { prisma } from "@/lib/prisma";
+import { sendNotification } from "@/lib/notification";
 
 export function getNextLevelThreshold(xp: number): number {
   if (xp >= 5500) return 5500;
@@ -55,6 +56,21 @@ export async function POST(request: NextRequest) {
     });
 
     const nextLevelAt = getNextLevelThreshold(result.skill.totalXP);
+
+    await sendNotification({
+      userId: studentId,
+      title: "XP Awarded!",
+      message: `You earned ${xpAmount} XP in ${skillName}!`,
+      type: "XP",
+      payload: {
+        amount: Number(xpAmount),
+        skillName,
+        reason,
+        mentorName: user.name,
+        leveledUp: result.leveledUp,
+        newLevel: result.skill.currentLevel
+      }
+    });
 
     return NextResponse.json({ 
       success: true, 

@@ -15,6 +15,8 @@ interface Content {
   attachments?: string[];
   completed: boolean;
   lastWatchedTime?: number;
+  isAccessible?: boolean;
+  isFreeTrial?: boolean;
 }
 
 interface Module {
@@ -28,9 +30,10 @@ interface LearnClientProps {
   modules: Module[];
   unassignedContents: Content[];
   enrollmentId: string;
+  isEnrolled: boolean;
 }
 
-export default function LearnClient({ course, modules, unassignedContents, enrollmentId }: LearnClientProps) {
+export default function LearnClient({ course, modules, unassignedContents, enrollmentId, isEnrolled }: LearnClientProps) {
   const router = useRouter();
   
   // Flatten contents for active lookup and total progress count
@@ -86,7 +89,38 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
     <div className="grid md:grid-cols-4 gap-6 max-w-7xl mx-auto py-8 px-4">
       <div className="md:col-span-3 space-y-6">
         {/* MEDIA DISPLAY */}
-        {activeContent?.type === "LESSON" && activeContent.videoId ? (
+        {!activeContent?.isAccessible ? (
+          <div className="relative w-full aspect-video bg-gray-900 rounded-xl overflow-hidden flex flex-col items-center justify-center border shadow-lg group">
+             <div className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none">
+                {course.thumbnail && <img src={course.thumbnail} className="w-full h-full object-cover blur-sm" alt="course background" />}
+             </div>
+             <div className="z-10 bg-black/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 text-center max-w-md w-full mx-4 shadow-2xl transform transition-transform group-hover:scale-105">
+                <div className="mb-4">
+                  <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm tracking-wider uppercase">
+                    Premium Content
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">{course.title}</h3>
+                <p className="text-gray-300 text-sm mb-6 line-clamp-2">Enroll now to unlock this lesson and the entire course.</p>
+                <div className="flex flex-col gap-2 items-center mb-6">
+                   {course.offerPercent && course.offerPercent > 0 ? (
+                      <div className="flex items-center gap-3">
+                         <span className="text-gray-400 line-through text-lg">₹{(course.basePrice || 0).toLocaleString("en-IN")}</span>
+                         <span className="text-3xl font-extrabold text-green-400">₹{(course.finalPrice || course.basePrice || 0).toLocaleString("en-IN")}</span>
+                      </div>
+                   ) : (
+                      <span className="text-3xl font-extrabold text-white">₹{(course.basePrice || 0).toLocaleString("en-IN")}</span>
+                   )}
+                </div>
+                <button
+                   onClick={() => router.push(`/courses/${course.slug}`)}
+                   className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-blue-500/50 transition duration-300 flex items-center justify-center gap-2"
+                >
+                   Enroll Now
+                </button>
+             </div>
+          </div>
+        ) : activeContent?.type === "LESSON" && activeContent.videoId ? (
           <VideoPlayer
             contentId={activeContent.id}
             enrollmentId={enrollmentId}
@@ -131,14 +165,20 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
             
             <div className="flex flex-col items-end gap-1">
               <button
-                disabled={(activeContent?.type === "LESSON" && !activeContent?.completed && !canComplete)}
+                disabled={
+                  !isEnrolled ||
+                  (activeContent?.type === "LESSON" && !activeContent?.completed && !canComplete) ||
+                  (activeContent?.type === "QUIZ" && !activeContent?.completed)
+                }
                 onClick={() => activeContent && handleComplete(activeContent.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
                   activeContent?.completed
                     ? "bg-green-100 text-green-700"
-                    : (activeContent?.type === "LESSON" && !canComplete)
+                    : !isEnrolled
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed border outline-none"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      : (activeContent?.type === "LESSON" && !canComplete) || (activeContent?.type === "QUIZ" && !activeContent?.completed)
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed border outline-none"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
                 {activeContent?.completed ? (
@@ -151,8 +191,14 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
                   </>
                 )}
               </button>
-              {activeContent?.type === "LESSON" && !activeContent?.completed && !canComplete && (
+              {!isEnrolled && (
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Enroll to track progress</span>
+              )}
+              {isEnrolled && activeContent?.type === "LESSON" && !activeContent?.completed && !canComplete && (
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Watch 80% to complete</span>
+              )}
+              {isEnrolled && activeContent?.type === "QUIZ" && !activeContent?.completed && (
+                <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider" title="Pass the quiz first (60% required)">Pass the quiz first (60% required)</span>
               )}
             </div>
           </div>
@@ -237,29 +283,38 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
                           const isActive = activeContentId === content.id;
                           return (
                              <button
-                                key={content.id}
-                                onClick={() => setActiveContentId(content.id)}
-                                className={`w-full text-left p-2 rounded-md flex gap-3 transition ${
-                                  isActive
-                                    ? "bg-blue-50 border border-blue-200"
-                                    : "hover:bg-gray-50 border border-transparent"
-                                }`}
-                              >
-                                <div className="mt-0.5 shrink-0">
-                                  {content.completed ? (
-                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                  ) : content.type === "LESSON" ? (
-                                    <PlayCircle className="w-4 h-4 text-gray-400" />
-                                  ) : (
-                                    <FileQuestion className="w-4 h-4 text-gray-400" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`font-semibold text-xs truncate ${isActive ? "text-blue-700" : "text-gray-700"}`}>
-                                    {content.title}
-                                  </p>
-                                </div>
-                              </button>
+                                 key={content.id}
+                                 onClick={() => setActiveContentId(content.id)}
+                                 className={`w-full text-left p-2 rounded-md flex gap-3 transition ${
+                                   isActive
+                                     ? "bg-blue-50 border border-blue-200"
+                                     : "hover:bg-gray-50 border border-transparent"
+                                 } ${!content.isAccessible ? "opacity-70" : ""}`}
+                               >
+                                 <div className="mt-0.5 shrink-0 relative">
+                                   {content.completed ? (
+                                     <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                   ) : !content.isAccessible ? (
+                                     <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center">
+                                       <span className="text-[8px]">🔒</span>
+                                     </div>
+                                   ) : content.type === "LESSON" ? (
+                                     <PlayCircle className="w-4 h-4 text-gray-400" />
+                                   ) : (
+                                     <FileQuestion className="w-4 h-4 text-gray-400" />
+                                   )}
+                                 </div>
+                                 <div className="flex-1 min-w-0 flex items-center justify-between">
+                                   <p className={`font-semibold text-xs truncate ${isActive ? "text-blue-700" : "text-gray-700"}`}>
+                                     {content.title}
+                                   </p>
+                                   {!isEnrolled && content.isFreeTrial && (
+                                     <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0">
+                                       Free
+                                     </span>
+                                   )}
+                                 </div>
+                               </button>
                           );
                        })
                     )}
@@ -283,21 +338,30 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
                             isActive
                               ? "bg-blue-50 border border-blue-200"
                               : "hover:bg-gray-50 border border-transparent"
-                          }`}
+                          } ${!content.isAccessible ? "opacity-70" : ""}`}
                         >
-                          <div className="mt-0.5 shrink-0">
+                          <div className="mt-0.5 shrink-0 relative">
                             {content.completed ? (
                               <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            ) : !content.isAccessible ? (
+                              <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                                <span className="text-[10px]">🔒</span>
+                              </div>
                             ) : content.type === "LESSON" ? (
                               <PlayCircle className="w-5 h-5 text-gray-400" />
                             ) : (
                               <FileQuestion className="w-5 h-5 text-gray-400" />
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 flex items-center justify-between">
                             <p className={`font-semibold text-sm line-clamp-2 ${isActive ? "text-blue-700" : "text-gray-700"}`}>
                               {content.title}
                             </p>
+                            {!isEnrolled && content.isFreeTrial && (
+                              <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0">
+                                Free
+                              </span>
+                            )}
                           </div>
                         </button>
                     );

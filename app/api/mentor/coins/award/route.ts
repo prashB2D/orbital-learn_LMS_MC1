@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { studentId, courseId, quizId, rank, amount, comment } = body;
+    const { studentId, courseId, quizId, externalCourseName, externalQuizRef, rank, amount, comment } = body;
     const reason = comment || body.reason;
 
     if (!studentId || !reason || !amount) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Security checks
-    // 1. Verify mentor assigned to course (skip if Admin)
+    // 1. Verify mentor assigned to course (skip if Admin, skip if external)
     if (user.role === "MENTOR" && courseId) {
       const assignment = await prisma.courseAssignment.findUnique({
         where: { courseId_mentorId: { courseId, mentorId: user.id } }
@@ -40,13 +40,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verify quiz attempted (only if quizId provided)
+    let quizName = externalQuizRef || null;
     if (quizId) {
       const attempts = await prisma.quizAttempt.findFirst({
-        where: { userId: studentId, quizId }
+        where: { userId: studentId, quizId },
+        include: { quiz: true }
       });
       if (!attempts) {
         return NextResponse.json({ error: "Student hasn't attempted this quiz" }, { status: 400 });
       }
+      quizName = attempts.quiz.title;
     }
 
     // Amount is now passed from frontend but we can still validate if needed.
@@ -83,6 +86,8 @@ export async function POST(request: NextRequest) {
           userId: studentId,
           courseId: courseId || null,
           quizId: quizId || null,
+          externalCourseName: externalCourseName || null,
+          externalQuizRef: externalQuizRef || null,
           amount: parsedAmount,
           rank: rank || null,
           reason,
@@ -104,7 +109,14 @@ export async function POST(request: NextRequest) {
       userId: studentId,
       title: "Coins Earned!",
       message: rank ? `You earned ${parsedAmount} coins for ranking #${rank}!` : `You earned ${parsedAmount} coins!`,
-      type: "COIN"
+      type: "COIN",
+      payload: {
+        amount: parsedAmount,
+        rank,
+        quizName,
+        mentorName: user.name,
+        reason: comment
+      }
     });
 
     return NextResponse.json({ success: true, transaction: result }, { status: 201 });

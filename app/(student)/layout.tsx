@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import RoleGuard from "@/components/auth/RoleGuard";
+import RewardPopup from "@/app/components/student/RewardPopup";
 
 export default async function StudentLayout({
   children,
@@ -61,6 +62,8 @@ export default async function StudentLayout({
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col max-w-[1400px] w-full mx-auto">{children}</main>
+
+      <RewardPopup />
 
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 z-50">

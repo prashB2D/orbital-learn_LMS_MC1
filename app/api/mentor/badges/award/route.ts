@@ -36,7 +36,14 @@ export async function POST(request: NextRequest) {
       userId: studentId,
       title: "Badge Awarded!",
       message: `You were awarded the ${studentBadge.badge.name} badge by your mentor!`,
-      type: "BADGE"
+      type: "BADGE",
+      payload: {
+        badgeName: studentBadge.badge.name,
+        badgeIcon: studentBadge.badge.icon,
+        rarity: studentBadge.badge.rarity,
+        mentorName: user.name,
+        reason: comment
+      }
     });
 
     return NextResponse.json({ success: true, studentBadge }, { status: 201 });

@@ -17,6 +17,7 @@ interface LessonFormValues {
   order: number;
   skill: string;
   xpReward: number;
+  isFreeTrial: boolean;
 }
 
 export default function AddLessonPage({
@@ -39,6 +40,7 @@ export default function AddLessonPage({
       order: 1,
       skill: "",
       xpReward: 10,
+      isFreeTrial: false,
     }
   });
 
@@ -66,6 +68,7 @@ export default function AddLessonPage({
         order: Number(data.order),
         skill: data.skill || undefined,
         xpReward: Number(data.xpReward),
+        isFreeTrial: data.isFreeTrial,
       };
 
       const response = await fetch("/api/content/lesson", {
@@ -191,6 +194,19 @@ export default function AddLessonPage({
             Points awarded to student for completing this lesson.
           </p>
           {errors.xpReward && <p className="text-red-500 text-sm mt-1">{errors.xpReward.message}</p>}
+        </div>
+
+        {/* Free Trial */}
+        <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border">
+          <input
+            {...register("isFreeTrial")}
+            type="checkbox"
+            id="isFreeTrial"
+            className="w-5 h-5"
+          />
+          <label htmlFor="isFreeTrial" className="font-semibold cursor-pointer">
+            Free Trial — allow non-enrolled users to watch this lesson for free
+          </label>
         </div>
 
         {/* Submit */}

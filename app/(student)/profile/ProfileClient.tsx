@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { User as UserIcon, Phone, MapPin, Calendar, BookOpen, Clock, Flame, Coins, Camera } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
+import { PhoneInput } from "@/components/PhoneInput";
 
 export default function ProfileClient({ user, stats }: { user: any, stats: any }) {
   const [profile, setProfile] = useState(user);
@@ -155,7 +156,7 @@ export default function ProfileClient({ user, stats }: { user: any, stats: any }
               </label>
               {editingField === "phoneNumber" ? (
                 <div className="flex gap-2">
-                  <input type="tel" value={editValue} onChange={e => setEditValue(e.target.value)} className="flex-1 border px-3 py-2 rounded-lg" />
+                  <PhoneInput value={editValue} onChange={setEditValue} className="flex-1" />
                   <button onClick={() => handleUpdate("phoneNumber")} disabled={loading} className="bg-blue-600 text-white px-3 py-2 rounded-lg font-bold text-sm">Save</button>
                 </div>
               ) : profile.phoneNumber ? (

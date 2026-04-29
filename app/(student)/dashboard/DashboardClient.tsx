@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PlayCircle, Trophy, Award, Download, Clock, BarChart3, Hexagon, Coins, TrendingUp, ShoppingBag, CheckCircle } from "lucide-react";
 import SkillHexagon from "@/components/skills/SkillHexagon";
 import StreakHeatmap from "@/components/activity/StreakHeatmap";
+import RewardPopup from "@/components/activity/RewardPopup";
 
 export default function DashboardClient({ user, coursesWithProgress, quizPerformance, badges }: any) {
   const [activeTab, setActiveTab] = useState<"LEARNING" | "ANALYTICS" | "ACHIEVEMENTS" | "ORDERS">("LEARNING");
@@ -78,6 +79,7 @@ export default function DashboardClient({ user, coursesWithProgress, quizPerform
   
   return (
     <div className="space-y-8 max-w-7xl mx-auto py-8 px-4">
+      <RewardPopup />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>

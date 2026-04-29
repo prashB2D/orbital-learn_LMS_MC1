@@ -13,6 +13,7 @@ interface LessonFormValues {
   moduleId: string | null;
   skill: string;
   xpReward: number;
+  isFreeTrial: boolean;
 }
 
 export default function EditLessonPage({ params }: { params: { id: string; contentId: string } }) {
@@ -39,6 +40,7 @@ export default function EditLessonPage({ params }: { params: { id: string; conte
             moduleId: c.moduleId || null,
             skill: c.skill || "",
             xpReward: c.xpReward || 0,
+            isFreeTrial: c.isFreeTrial || false,
           });
         }
       } catch (err) {
@@ -67,6 +69,7 @@ export default function EditLessonPage({ params }: { params: { id: string; conte
         moduleId: data.moduleId,
         skill: data.skill || undefined,
         xpReward: Number(data.xpReward),
+        isFreeTrial: data.isFreeTrial,
       };
 
       const response = await fetch(`/api/content/${params.contentId}`, {
@@ -128,6 +131,19 @@ export default function EditLessonPage({ params }: { params: { id: string; conte
         <div>
            <label className="block font-semibold mb-2">XP Reward</label>
            <input {...register("xpReward", { required: "XP Reward is required", min: 0 })} type="number" className="w-full px-4 py-2 border rounded-lg" required />
+        </div>
+
+        {/* Free Trial */}
+        <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border">
+          <input
+            {...register("isFreeTrial")}
+            type="checkbox"
+            id="isFreeTrial"
+            className="w-5 h-5"
+          />
+          <label htmlFor="isFreeTrial" className="font-semibold cursor-pointer">
+            Free Trial — allow non-enrolled users to watch this lesson for free
+          </label>
         </div>
 
         <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">

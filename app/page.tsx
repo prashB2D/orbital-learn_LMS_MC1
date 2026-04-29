@@ -16,6 +16,7 @@ interface Course {
   finalPrice: number;
   thumbnail: string;
   slug: string;
+  hasFreeTrialContent?: boolean;
 }
 
 async function getFeaturedCourses() {
