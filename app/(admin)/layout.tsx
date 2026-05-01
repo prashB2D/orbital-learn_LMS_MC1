@@ -3,7 +3,7 @@
  * Wrapper for all admin pages
  */
 
-import { LogOut, BookOpen, Users, DollarSign, BarChart, Settings, Search, Award, GraduationCap, ShoppingBag, Share2, Tag } from "lucide-react";
+import { LogOut, BookOpen, Users, DollarSign, BarChart, Settings, Search, Award, GraduationCap, ShoppingBag, Share2, Tag, Coins } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -101,6 +101,14 @@ export default async function AdminLayout({
               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
             >
               <Tag className="w-5 h-5" /> Coupons
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/coins"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <Coins className="w-5 h-5" /> Coin Oversight
             </Link>
           )}
         </nav>

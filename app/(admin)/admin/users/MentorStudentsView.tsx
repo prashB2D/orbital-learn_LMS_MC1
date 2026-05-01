@@ -14,6 +14,7 @@ interface Student {
   quizAttempts: any[];
   badges: string[];
   coins: number;
+  coinTransactions?: any[];
   skills: Record<string, { currentLevel: number; totalXP: number; nextLevelAt: number }>;
 }
 
@@ -49,6 +50,35 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
   const [selectedCoinQuizId, setSelectedCoinQuizId] = useState("");
   const [externalCourseName, setExternalCourseName] = useState("");
   const [externalQuizRef, setExternalQuizRef] = useState("");
+  
+  const [coinBudget, setCoinBudget] = useState<{ limit: number | null, usedThisPeriod: number, remaining: number | null } | null>(null);
+  const [loadingBudget, setLoadingBudget] = useState(false);
+
+  const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+  const [withdrawTargetId, setWithdrawTargetId] = useState("");
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  const fetchCoinBudget = async () => {
+    setLoadingBudget(true);
+    try {
+      const res = await fetch("/api/mentor/coin-budget");
+      const data = await res.json();
+      if (data.success) {
+        setCoinBudget(data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingBudget(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAwardingCoins) {
+      fetchCoinBudget();
+    }
+  }, [isAwardingCoins]);
 
   const fetchBadges = async () => {
     try {
@@ -205,6 +235,7 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
             ...selectedStudent,
             coins: selectedStudent.coins + coinAwardAmount
           });
+          fetchCoinBudget();
         }
       } else {
         alert(data.error || "Failed to award coins");
@@ -212,6 +243,38 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
     } catch (e) {
       console.error(e);
       alert("An error occurred");
+    }
+  };
+
+  const handleWithdrawCoins = async () => {
+    if (!withdrawTargetId || withdrawReason.length < 10) return;
+    setWithdrawing(true);
+    try {
+      const res = await fetch("/api/mentor/coins/withdraw", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ originalTransactionId: withdrawTargetId, reason: withdrawReason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWithdrawModalOpen(false);
+        setWithdrawReason("");
+        // Remove from local transactions list
+        if (selectedStudent) {
+          setSelectedStudent({
+            ...selectedStudent,
+            coins: selectedStudent.coins - Math.abs(data.transaction.amount),
+            coinTransactions: selectedStudent.coinTransactions?.filter((tx: any) => tx.id !== withdrawTargetId)
+          });
+          fetchCoinBudget();
+        }
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -404,6 +467,31 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
                     <p className="text-sm text-gray-500 italic">No recent quiz attempts.</p>
                   )}
                 </div>
+
+                <div className="bg-white border p-5 rounded-xl">
+                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Coins className="w-4 h-4"/> Coin History</h3>
+                  {selectedStudent.coinTransactions && selectedStudent.coinTransactions.length > 0 ? (
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                      {selectedStudent.coinTransactions.map((tx: any) => (
+                        <div key={tx.id} className="flex flex-col text-sm border-b pb-2 last:border-0">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-green-600">+{tx.amount} Coins</span>
+                            <span className="text-xs text-gray-500">{new Date(tx.awardedAt).toLocaleDateString()}</span>
+                          </div>
+                          <span className="text-xs text-gray-600 my-1">{tx.reason}</span>
+                          <button 
+                            onClick={() => { setWithdrawTargetId(tx.id); setWithdrawModalOpen(true); }}
+                            className="self-end text-[10px] text-red-600 border border-red-200 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded transition"
+                          >
+                            Withdraw
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No manual awards given yet.</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -555,13 +643,34 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
       {isAwardingCoins && selectedStudent && (
         <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="p-6 border-b flex justify-between items-center">
+            <div className="p-6 border-b flex justify-between items-start">
               <div>
                 <h2 className="text-xl font-bold">Award Coins to {selectedStudent.name}</h2>
               </div>
-              <button onClick={() => setIsAwardingCoins(false)} className="text-gray-500 hover:bg-gray-100 p-1 rounded-full">
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex gap-4 items-start">
+                <div className="text-right border rounded-lg px-3 py-1.5 bg-gray-50 flex flex-col justify-center min-w-[120px] min-h-[52px]">
+                  {loadingBudget ? (
+                    <div className="flex justify-center items-center h-full">
+                      <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                    </div>
+                  ) : !coinBudget || coinBudget.limit === null ? (
+                    <span className="text-xs text-gray-500 font-medium leading-tight">No limit set</span>
+                  ) : (
+                    <>
+                      <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-none mb-1">Coins Left</span>
+                      <span className={`text-lg font-black leading-none ${
+                        (coinBudget.remaining! / coinBudget.limit) > 0.2 ? "text-green-600" :
+                        (coinBudget.remaining! / coinBudget.limit) > 0.1 ? "text-amber-500" : "text-red-600"
+                      }`}>
+                        {coinBudget.remaining} <span className="text-xs text-gray-500 font-medium">/ {coinBudget.limit}</span>
+                      </span>
+                    </>
+                  )}
+                </div>
+                <button onClick={() => setIsAwardingCoins(false)} className="text-gray-500 hover:bg-gray-100 p-1 rounded-full mt-1">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex gap-4 mb-4 bg-gray-100 p-1 rounded-lg">
@@ -661,6 +770,40 @@ export default function MentorStudentsView({ mentorCourses }: { mentorCourses: {
                   className="px-4 py-2 font-bold text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition disabled:opacity-50"
                 >
                   Award Coins
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Modal */}
+      {withdrawModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h2 className="text-xl font-bold text-red-600">Withdraw Coins</h2>
+              <button onClick={() => { setWithdrawModalOpen(false); setWithdrawReason(""); }} className="text-gray-500 hover:bg-gray-100 p-1 rounded-full"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-700 font-medium">You are about to withdraw previously awarded coins from this student.</p>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Reason for Withdrawal (Required)</label>
+                <textarea 
+                  value={withdrawReason}
+                  onChange={(e) => setWithdrawReason(e.target.value)}
+                  placeholder="Min 10 characters..."
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none h-24"
+                />
+              </div>
+              <div className="flex justify-end pt-4 border-t gap-2">
+                <button onClick={() => { setWithdrawModalOpen(false); setWithdrawReason(""); }} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button 
+                  onClick={handleWithdrawCoins}
+                  disabled={withdrawReason.length < 10 || withdrawing}
+                  className="px-4 py-2 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:opacity-50"
+                >
+                  {withdrawing ? "Withdrawing..." : "Confirm Withdrawal"}
                 </button>
               </div>
             </div>

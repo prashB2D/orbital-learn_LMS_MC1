@@ -110,10 +110,16 @@ export async function hasCourseAccess(courseId: string) {
     
     // Mentors only have access to assigned courses
     if (session.user.role === "MENTOR") {
+      const course = await prisma.course.findFirst({
+        where: {
+          OR: [{ id: courseId }, { slug: courseId }]
+        }
+      });
+      if (!course) return false;
       const assignment = await prisma.courseAssignment.findUnique({
         where: {
           courseId_mentorId: {
-            courseId,
+            courseId: course.id,
             mentorId: session.user.id
           }
         }

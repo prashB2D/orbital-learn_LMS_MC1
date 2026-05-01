@@ -10,6 +10,13 @@ export default function BadgesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
+  // Revoke state
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [revokeTargetId, setRevokeTargetId] = useState("");
+  const [revokeTargetName, setRevokeTargetName] = useState("");
+  const [revokeReason, setRevokeReason] = useState("");
+  const [revoking, setRevoking] = useState(false);
+
   // Form State
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -61,6 +68,30 @@ export default function BadgesPage() {
     }
   };
 
+  const handleRevoke = async () => {
+    if (!revokeTargetId || revokeReason.length < 10) return;
+    setRevoking(true);
+    try {
+      const res = await fetch("/api/mentor/badges/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentBadgeId: revokeTargetId, reason: revokeReason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRevokeModalOpen(false);
+        setRevokeReason("");
+        fetchBadges();
+      } else {
+        alert(data.error);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRevoking(false);
+    }
+  };
+
   const ICONS = ["🏆", "⭐", "🥇", "🥈", "🥉", "🏅", "🔥", "🚀", "💡", "🧠", "🎯", "🎓", "⚡", "🌟"];
 
   return (
@@ -104,7 +135,10 @@ export default function BadgesPage() {
                       </div>
                     </td>
                     <td className="p-4 text-gray-600 text-sm max-w-xs truncate" title={ab.comment}>{ab.comment || "-"}</td>
-                    <td className="p-4 text-right text-gray-500 text-sm">{new Date(ab.awardedAt).toLocaleDateString()}</td>
+                    <td className="p-4 flex items-center justify-end gap-4 text-sm">
+                      <span className="text-gray-500">{new Date(ab.awardedAt).toLocaleDateString()}</span>
+                      <button onClick={() => { setRevokeTargetId(ab.id); setRevokeTargetName(ab.badge.name); setRevokeModalOpen(true); }} className="text-red-600 hover:bg-red-50 px-3 py-1 rounded font-bold border border-red-200">Revoke</button>
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -216,6 +250,39 @@ export default function BadgesPage() {
                 <button type="submit" className="px-4 py-2 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition">Create Badge</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {revokeModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h2 className="text-xl font-bold text-red-600">Revoke Badge</h2>
+              <button onClick={() => { setRevokeModalOpen(false); setRevokeReason(""); }} className="text-gray-500 hover:bg-gray-100 p-1 rounded-full"><Trash className="w-5 h-5"/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-700 font-medium">You are about to revoke the <span className="font-bold text-gray-900">"{revokeTargetName}"</span> badge from this student.</p>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Reason for Revocation (Required)</label>
+                <textarea 
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  placeholder="Min 10 characters..."
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none h-24"
+                />
+              </div>
+              <div className="flex justify-end pt-4 border-t gap-2">
+                <button onClick={() => { setRevokeModalOpen(false); setRevokeReason(""); }} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+                <button 
+                  onClick={handleRevoke}
+                  disabled={revokeReason.length < 10 || revoking}
+                  className="px-4 py-2 font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:opacity-50"
+                >
+                  {revoking ? "Revoking..." : "Confirm Revocation"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

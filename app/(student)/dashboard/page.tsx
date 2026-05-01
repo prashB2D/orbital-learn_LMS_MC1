@@ -98,7 +98,7 @@ export default async function DashboardPage() {
   // Coin history is fetched live by the client component
 
   const badges = await prisma.studentBadge.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, isRevoked: false },
     include: { badge: true },
     orderBy: { awardedAt: "desc" }
   });

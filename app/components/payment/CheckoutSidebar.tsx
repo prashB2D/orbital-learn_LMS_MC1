@@ -98,7 +98,17 @@ export function CheckoutSidebar({ course }: { course: any }) {
         {finalPrice === 0 ? (
           <FreeButton courseId={course.id} />
         ) : (
-          <RazorpayButton courseId={course.id} amount={finalPrice} />
+          <>
+            <RazorpayButton courseId={course.id} amount={finalPrice} />
+            {course.hasFreeTrialContent && (
+              <a 
+                href={`/courses/${course.slug}/learn?freeTrial=true`}
+                className="block w-full text-center bg-green-100 text-green-700 border border-green-200 py-3 rounded-lg font-bold hover:bg-green-200 transition mt-2"
+              >
+                Start Free Trial
+              </a>
+            )}
+          </>
         )}
         <p className="text-xs text-center text-gray-400">
           Full lifetime access • Certificate of completion

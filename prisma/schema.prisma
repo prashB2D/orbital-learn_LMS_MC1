@@ -428,6 +428,11 @@ model StudentBadge {
   comment   String?
   awardedAt DateTime @default(now())
 
+  isRevoked    Boolean   @default(false)
+  revokedAt    DateTime?
+  revokedBy    String?
+  revokeReason String?
+
   @@unique([userId, badgeId])
 }
 
@@ -454,6 +459,8 @@ model CoinTransaction {
   awardedBy   User?   @relation("MentorCoinAwards", fields: [awardedById], references: [id], onDelete: SetNull)
 
   mentorComment String?
+
+  isWithdrawal  Boolean @default(false)
 
   awardedAt DateTime @default(now())
 }

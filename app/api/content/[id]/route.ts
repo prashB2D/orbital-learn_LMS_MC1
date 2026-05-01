@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireCourseAccess } from "@/lib/auth";
+import { requireCourseAccess, getCurrentSession } from "@/lib/auth";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -17,6 +17,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
       include: { questions: { orderBy: { order: "asc" } } }
     });
     if (!content) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const session = await getCurrentSession();
+    const user = session?.user ? await prisma.user.findUnique({ where: { email: session.user.email } }) : null;
+
+    let isAccessible = !!content.isFreeTrial;
+
+    if (user && !isAccessible) {
+      const enrollment = await prisma.enrollment.findFirst({
+        where: { userId: user.id, courseId: content.courseId }
+      });
+      if (enrollment || user.role === "ADMIN" || user.role === "MENTOR") {
+        isAccessible = true;
+      }
+    }
+
+    if (!isAccessible) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     return NextResponse.json({ success: true, content }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

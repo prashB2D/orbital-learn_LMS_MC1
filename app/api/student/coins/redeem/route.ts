@@ -17,9 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing item or phone number" }, { status: 400 });
     }
 
-    const phoneRegex = /^\+\d{1,4}\d{10}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      return NextResponse.json({ error: "Invalid phone number format" }, { status: 400 });
+    const { isValidPhoneNumber } = require('libphonenumber-js');
+    if (!isValidPhoneNumber(phoneNumber)) {
+      return NextResponse.json({ error: "Please enter a valid phone number for the selected country" }, { status: 400 });
     }
 
     const item = await prisma.storeItem.findUnique({ where: { id: itemId } });

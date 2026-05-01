@@ -31,9 +31,11 @@ interface LearnClientProps {
   unassignedContents: Content[];
   enrollmentId: string;
   isEnrolled: boolean;
+  initialLessonId?: string;
+  startFreeTrial?: boolean;
 }
 
-export default function LearnClient({ course, modules, unassignedContents, enrollmentId, isEnrolled }: LearnClientProps) {
+export default function LearnClient({ course, modules, unassignedContents, enrollmentId, isEnrolled, initialLessonId, startFreeTrial }: LearnClientProps) {
   const router = useRouter();
   
   // Flatten contents for active lookup and total progress count
@@ -42,8 +44,9 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
     ...unassignedContents
   ];
   
+  const defaultContentId = initialLessonId || (startFreeTrial ? allContents.find(c => c.isFreeTrial)?.id : allContents[0]?.id) || allContents[0]?.id || null;
   const [activeContentId, setActiveContentId] = useState<string | null>(
-    allContents[0]?.id || null
+    defaultContentId
   );
 
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(
@@ -106,6 +109,9 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
                    {course.offerPercent && course.offerPercent > 0 ? (
                       <div className="flex items-center gap-3">
                          <span className="text-gray-400 line-through text-lg">₹{(course.basePrice || 0).toLocaleString("en-IN")}</span>
+                         <span className="bg-red-500/20 text-red-400 text-xs font-bold px-2 py-1 rounded-md border border-red-500/30">
+                           {course.offerPercent}% OFF
+                         </span>
                          <span className="text-3xl font-extrabold text-green-400">₹{(course.finalPrice || course.basePrice || 0).toLocaleString("en-IN")}</span>
                       </div>
                    ) : (
@@ -310,7 +316,7 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
                                    </p>
                                    {!isEnrolled && content.isFreeTrial && (
                                      <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0">
-                                       Free
+                                       TRIAL
                                      </span>
                                    )}
                                  </div>
@@ -359,7 +365,7 @@ export default function LearnClient({ course, modules, unassignedContents, enrol
                             </p>
                             {!isEnrolled && content.isFreeTrial && (
                               <span className="ml-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0">
-                                Free
+                                TRIAL
                               </span>
                             )}
                           </div>
