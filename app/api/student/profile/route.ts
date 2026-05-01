@@ -13,9 +13,9 @@ export async function PUT(request: NextRequest) {
     const { phoneNumber, dateOfBirth, location, bio, profilePicture } = body;
 
     if (phoneNumber !== undefined && phoneNumber !== "") {
-      const phoneRegex = /^\+\d{1,4}\d{10}$/;
-      if (!phoneRegex.test(phoneNumber)) {
-        return NextResponse.json({ error: "Invalid phone number format" }, { status: 400 });
+      const { isValidPhoneNumber } = require('libphonenumber-js');
+      if (!isValidPhoneNumber(phoneNumber)) {
+        return NextResponse.json({ error: "Please enter a valid phone number for the selected country" }, { status: 400 });
       }
     }
 

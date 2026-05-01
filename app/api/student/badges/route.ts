@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const studentBadges = await prisma.studentBadge.findMany({
-      where: { userId: targetUserId },
+      where: { userId: targetUserId, isRevoked: false },
       include: {
         badge: true,
         awardedBy: { select: { name: true } }

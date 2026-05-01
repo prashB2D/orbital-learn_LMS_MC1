@@ -92,7 +92,14 @@ export default async function CourseDetailsPage({
 
           {/* Module-based Contents List */}
           <div className="bg-white p-6 rounded-lg border shadow-sm">
-            <h2 className="text-2xl font-bold mb-6">Course Content</h2>
+            <div className="flex justify-between items-end mb-6">
+              <h2 className="text-2xl font-bold">Course Content</h2>
+              {!isEnrolled && course.hasFreeTrialContent && (
+                <div className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                  {course.modules.reduce((acc, m) => acc + m.contents.filter((c: any) => c.isFreeTrial).length, 0) + course.contents.filter((c: any) => c.isFreeTrial).length} Free Lesson(s) Available
+                </div>
+              )}
+            </div>
             <div className="space-y-6">
               {course.modules.length > 0 ? (
                 course.modules.map((module) => (
@@ -105,26 +112,38 @@ export default async function CourseDetailsPage({
                     </summary>
                     <div className="divide-y border-t bg-white">
                       {module.contents.length > 0 ? (
-                        module.contents.map((content, index) => (
-                          <div key={content.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition">
-                            <div className="flex items-center gap-4">
-                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                                {index + 1}
+                        module.contents.map((content, index) => {
+                          const Wrapper = (isEnrolled || course.hasFreeTrialContent) ? Link : "div";
+                          const hrefProps = (isEnrolled || course.hasFreeTrialContent) ? { href: `/courses/${course.slug}/learn?lessonId=${content.id}` } : {};
+                          return (
+                            <Wrapper key={content.id} {...hrefProps} className="flex items-center justify-between p-4 hover:bg-gray-50 transition border-b last:border-b-0 block w-full">
+                              <div className="flex items-center gap-4">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-gray-900">{content.title}</h3>
+                                    {!isEnrolled && content.isFreeTrial && (
+                                      <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Free Trial</span>
+                                    )}
+                                    {!isEnrolled && !content.isFreeTrial && (
+                                      <span className="text-gray-400 text-xs">🔒</span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
+                                    {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">{content.title}</h3>
-                                <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
-                                  {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
-                                </p>
-                              </div>
-                            </div>
-                            {content.type === "LESSON" && content.duration && (
-                              <div className="text-sm text-gray-500 font-mono">
-                                {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
-                              </div>
-                            )}
-                          </div>
-                        ))
+                              {content.type === "LESSON" && content.duration && (
+                                <div className="text-sm text-gray-500 font-mono shrink-0">
+                                  {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
+                                </div>
+                              )}
+                            </Wrapper>
+                          );
+                        })
                       ) : (
                         <p className="p-4 text-sm text-gray-500 italic">No classes in this module yet.</p>
                       )}
@@ -134,26 +153,38 @@ export default async function CourseDetailsPage({
               ) : course.contents.length > 0 ? (
                 // Fallback for flat structure 
                 <div className="divide-y border rounded-lg">
-                  {course.contents.map((content, index) => (
-                    <div key={content.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition">
-                      <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
-                          {index + 1}
+                  {course.contents.map((content, index) => {
+                    const Wrapper = (isEnrolled || course.hasFreeTrialContent) ? Link : "div";
+                    const hrefProps = (isEnrolled || course.hasFreeTrialContent) ? { href: `/courses/${course.slug}/learn?lessonId=${content.id}` } : {};
+                    return (
+                      <Wrapper key={content.id} {...hrefProps} className="flex items-center justify-between p-4 hover:bg-gray-50 transition block w-full">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-gray-900">{content.title}</h3>
+                              {!isEnrolled && content.isFreeTrial && (
+                                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Free Trial</span>
+                              )}
+                              {!isEnrolled && !content.isFreeTrial && (
+                                <span className="text-gray-400 text-xs">🔒</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
+                              {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{content.title}</h3>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mt-1">
-                            {content.type === "LESSON" ? "Video Lesson" : "Quiz"}
-                          </p>
-                        </div>
-                      </div>
-                      {content.type === "LESSON" && content.duration && (
-                        <div className="text-sm text-gray-500 font-mono">
-                          {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        {content.type === "LESSON" && content.duration && (
+                          <div className="text-sm text-gray-500 font-mono shrink-0">
+                            {Math.floor(content.duration / 60)}:{(content.duration % 60).toString().padStart(2, "0")} MIN
+                          </div>
+                        )}
+                      </Wrapper>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-500 italic">No content available for this course yet.</p>

@@ -14,7 +14,7 @@ export async function GET() {
     let awardedBadges = [];
     if (user.role === "MENTOR") {
       awardedBadges = await prisma.studentBadge.findMany({
-        where: { awardedById: user.id },
+        where: { awardedById: user.id, isRevoked: false },
         include: { badge: true, user: { select: { name: true } } },
         orderBy: { awardedAt: "desc" }
       });

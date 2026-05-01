@@ -12,8 +12,10 @@ export const dynamic = "force-dynamic";
 
 export default async function LearnPage({
   params,
+  searchParams,
 }: {
   params: { slug: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -76,6 +78,7 @@ export default async function LearnPage({
     ...module,
     contents: module.contents.map(content => ({
       ...content,
+      videoId: (!!enrollment || !!content.isFreeTrial) ? content.videoId : null,
       completed: progressLogs.find((p) => p.contentId === content.id)?.completed || false,
       isAccessible: !!enrollment || !!content.isFreeTrial,
     }))
@@ -85,11 +88,20 @@ export default async function LearnPage({
     const log = progressLogs.find((p) => p.contentId === content.id);
     return {
       ...content,
+      videoId: (!!enrollment || !!content.isFreeTrial) ? content.videoId : null,
       completed: log ? log.completed : false,
       isAccessible: !!enrollment || !!content.isFreeTrial,
     };
   });
 
-  return <LearnClient course={course} modules={hydratedModules} unassignedContents={hydratedUnassignedContents} enrollmentId={enrollment?.id || ""} isEnrolled={!!enrollment} />;
+  return <LearnClient 
+    course={course} 
+    modules={hydratedModules} 
+    unassignedContents={hydratedUnassignedContents} 
+    enrollmentId={enrollment?.id || ""} 
+    isEnrolled={!!enrollment} 
+    initialLessonId={searchParams.lessonId as string}
+    startFreeTrial={searchParams.freeTrial === "true"}
+  />;
 }
 

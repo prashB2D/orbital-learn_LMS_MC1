@@ -10,11 +10,21 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MENTOR")) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const { id } = params;
+
+    const moduleToDelete = await prisma.module.findUnique({ where: { id } });
+    if (!moduleToDelete) return new NextResponse("Not found", { status: 404 });
+
+    if (session.user.role === "MENTOR") {
+      const assignment = await prisma.courseAssignment.findUnique({
+        where: { courseId_mentorId: { courseId: moduleToDelete.courseId, mentorId: session.user.id } }
+      });
+      if (!assignment) return new NextResponse("Forbidden", { status: 403 });
+    }
 
     const module = await prisma.module.delete({
       where: {
@@ -36,12 +46,22 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MENTOR")) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const { id } = params;
     const values = await req.json();
+
+    const moduleToUpdate = await prisma.module.findUnique({ where: { id } });
+    if (!moduleToUpdate) return new NextResponse("Not found", { status: 404 });
+
+    if (session.user.role === "MENTOR") {
+      const assignment = await prisma.courseAssignment.findUnique({
+        where: { courseId_mentorId: { courseId: moduleToUpdate.courseId, mentorId: session.user.id } }
+      });
+      if (!assignment) return new NextResponse("Forbidden", { status: 403 });
+    }
 
     const module = await prisma.module.update({
       where: { id },

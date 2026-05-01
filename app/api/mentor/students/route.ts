@@ -60,7 +60,12 @@ export async function GET(request: NextRequest) {
           include: { quiz: { select: { title: true } } }
         },
         earnedBadges: {
+          where: { isRevoked: false },
           include: { badge: true }
+        },
+        coinTransactions: {
+          where: { amount: { gt: 0 }, isWithdrawal: false, awardedById: user.id },
+          orderBy: { awardedAt: "desc" }
         },
         skills: true
       }
@@ -125,6 +130,7 @@ export async function GET(request: NextRequest) {
         badges: student.earnedBadges.map(eb => eb.badge.name),
         badgeCount: student.earnedBadges.length,
         coins: student.coinBalance || 0,
+        coinTransactions: student.coinTransactions,
         skills: formattedSkills
       };
     });
@@ -147,6 +153,7 @@ export async function GET(request: NextRequest) {
             coins: s.coins, // keep for compatibility
             badgeCount: s.badgeCount,
             badges: s.badges,
+            coinTransactions: s.coinTransactions,
             skills: s.skills,
             quizAttempts: s.quizAttempts,
             courses: s.courses

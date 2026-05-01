@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MENTOR")) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -15,6 +15,17 @@ export async function POST(req: Request) {
 
     if (!courseId || !title) {
       return new NextResponse("Missing fields", { status: 400 });
+    }
+
+    if (session.user.role === "MENTOR") {
+      const course = await prisma.course.findFirst({
+        where: { OR: [{ id: courseId }, { slug: courseId }] }
+      });
+      if (!course) return new NextResponse("Course not found", { status: 404 });
+      const assignment = await prisma.courseAssignment.findUnique({
+        where: { courseId_mentorId: { courseId: course.id, mentorId: session.user.id } }
+      });
+      if (!assignment) return new NextResponse("Forbidden", { status: 403 });
     }
 
     // Find the max order to append the new module at the end

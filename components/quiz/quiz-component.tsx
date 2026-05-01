@@ -96,6 +96,7 @@ export function QuizComponent({ quiz, enrollmentId, onComplete }: QuizProps) {
       
       if (data.success) {
         setAttemptId(data.attemptId);
+        reset();
         setHasStarted(true);
         setCurrentQuestionIndex(0);
         setQuestionTimes([]);
@@ -388,7 +389,7 @@ export function QuizComponent({ quiz, enrollmentId, onComplete }: QuizProps) {
             </div>
           </div>
         ) : currentQ ? (
-          <form onSubmit={(e) => e.preventDefault()} className="h-full flex flex-col">
+          <form key={attemptId || "form"} onSubmit={(e) => e.preventDefault()} className="h-full flex flex-col">
             <div className="flex-1 p-6 md:p-12 flex flex-col justify-center max-w-4xl mx-auto w-full">
               <div className="space-y-8 bg-white border p-8 rounded-2xl shadow-sm">
                 <h3 className="font-bold text-2xl text-gray-900 leading-relaxed">
