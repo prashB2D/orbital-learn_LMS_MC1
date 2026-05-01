@@ -12,6 +12,13 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { phoneNumber, dateOfBirth, location, bio, profilePicture } = body;
 
+    if (phoneNumber !== undefined && phoneNumber !== "") {
+      const phoneRegex = /^\+\d{1,4}\d{10}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        return NextResponse.json({ error: "Invalid phone number format" }, { status: 400 });
+      }
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {

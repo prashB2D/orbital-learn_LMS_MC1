@@ -19,6 +19,7 @@ export default async function CoursesPage() {
       finalPrice: true,
       thumbnail: true,
       slug: true,
+      hasFreeTrialContent: true,
     },
     orderBy: {
       createdAt: "desc",

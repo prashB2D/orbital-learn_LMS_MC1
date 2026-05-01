@@ -93,12 +93,8 @@ export default function StreakHeatmap() {
       </div>
 
       <div className="border-t pt-4">
-        <h3 className="text-sm font-bold text-gray-700 mb-3">Quick Actions to Keep Streak Alive</h3>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => handleActionClick("video")} className="text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-lg transition">Continue Learning</button>
-          <button onClick={() => handleActionClick("quiz")} className="text-xs font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 px-3 py-2 rounded-lg transition">Daily Quiz</button>
-          <button onClick={() => handleActionClick("note")} className="text-xs font-bold bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-3 py-2 rounded-lg transition">Read Blog/Note</button>
-        </div>
+        <h3 className="text-sm font-bold text-gray-700 mb-3">Keep Your Streak Alive!</h3>
+        <p className="text-sm text-gray-500">Complete quizzes to maintain your daily streak and earn XP.</p>
       </div>
     </div>
   );

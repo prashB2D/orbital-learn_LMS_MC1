@@ -59,24 +59,25 @@ export default async function LearnPage({
     },
   });
 
-  if (!enrollment) {
+  if (!enrollment && !course.hasFreeTrialContent) {
     // Attempted to bypass payment wall
     redirect(`/courses/${course.slug}`);
   }
 
   // 3. Fetch progress for these contents under this enrollment
-  const progressLogs = await prisma.progress.findMany({
+  const progressLogs = enrollment ? await prisma.progress.findMany({
     where: {
       enrollmentId: enrollment.id,
     },
-  });
+  }) : [];
 
-  // 4. Attach `completed` booleans manually alongside
+  // 4. Attach `completed` and `isAccessible` booleans manually alongside
   const hydratedModules = course.modules.map(module => ({
     ...module,
     contents: module.contents.map(content => ({
       ...content,
       completed: progressLogs.find((p) => p.contentId === content.id)?.completed || false,
+      isAccessible: !!enrollment || !!content.isFreeTrial,
     }))
   }));
 
@@ -85,9 +86,10 @@ export default async function LearnPage({
     return {
       ...content,
       completed: log ? log.completed : false,
+      isAccessible: !!enrollment || !!content.isFreeTrial,
     };
   });
 
-  return <LearnClient course={course} modules={hydratedModules} unassignedContents={hydratedUnassignedContents} enrollmentId={enrollment.id} />;
+  return <LearnClient course={course} modules={hydratedModules} unassignedContents={hydratedUnassignedContents} enrollmentId={enrollment?.id || ""} isEnrolled={!!enrollment} />;
 }
 

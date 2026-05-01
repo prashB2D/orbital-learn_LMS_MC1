@@ -1,14 +1,15 @@
 import { prisma } from "./prisma";
 import nodemailer from "nodemailer";
 
-export async function sendNotification({ userId, title, message, type }: { userId: string, title: string, message: string, type: string }) {
+export async function sendNotification({ userId, title, message, type, payload }: { userId: string, title: string, message: string, type: string, payload?: any }) {
   try {
     await prisma.notification.create({
       data: {
         userId,
         title,
         message,
-        type
+        type,
+        payload
       }
     });
   } catch (error) {

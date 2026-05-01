@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const formattedHistory = transactions.map(tx => ({
       id: tx.id,
       date: tx.awardedAt,
-      source: `${tx.course?.title || 'Unknown Course'} - ${tx.quiz?.title || 'Unknown Quiz'}`,
+      source: `${tx.course?.title || tx.externalCourseName || 'Unknown Course'} - ${tx.quiz?.title || tx.externalQuizRef || 'Unknown Quiz'}`,
       amount: tx.amount,
       rank: tx.rank,
       awardedBy: tx.awardedBy?.name || 'System',

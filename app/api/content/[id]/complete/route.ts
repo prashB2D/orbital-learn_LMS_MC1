@@ -30,8 +30,29 @@ export async function POST(
       return NextResponse.json({ error: "ID mismatch" }, { status: 400 });
     }
 
+    // 2.5 Block if QUIZ and no passing attempt
+    const content = await prisma.content.findUnique({ where: { id: contentId } });
+    if (!content) return NextResponse.json({ error: "Content not found" }, { status: 404 });
+
+    if (content.type === "QUIZ") {
+      const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+      if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+      const passingAttempt = await prisma.quizAttempt.findFirst({
+        where: {
+          userId: user.id,
+          quizId: contentId,
+          score: { gte: 60 }
+        }
+      });
+
+      if (!passingAttempt) {
+        return NextResponse.json({ error: "You must pass this quiz to mark it complete" }, { status: 400 });
+      }
+    }
+
     // 3. Upsert Progress
-    await prisma.progress.upsert({
+    const progress = await prisma.progress.upsert({
       where: {
         enrollmentId_contentId: {
           enrollmentId,
@@ -49,6 +70,14 @@ export async function POST(
         completedAt: new Date(),
       },
     });
+
+    if (content.type === "LESSON") {
+       const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+       if (user) {
+          const { logDailyActivity } = await import("@/lib/streak-engine");
+          await logDailyActivity(user.id, "video", 1);
+       }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

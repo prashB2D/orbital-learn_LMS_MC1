@@ -41,6 +41,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       moduleId: body.moduleId || null,
       skill: body.skill,
       xpReward: body.xpReward !== undefined ? Number(body.xpReward) : undefined,
+      isFreeTrial: body.isFreeTrial !== undefined ? Boolean(body.isFreeTrial) : undefined,
     };
 
     if (body.questions) {
@@ -62,6 +63,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       data: updateData,
     });
 
+    if (body.isFreeTrial !== undefined) {
+      if (body.isFreeTrial) {
+        await prisma.course.update({
+          where: { id: contentToUpdate.courseId },
+          data: { hasFreeTrialContent: true }
+        });
+      } else {
+        // If turned off, check if any other free trial exists
+        const otherFreeTrials = await prisma.content.count({
+          where: { courseId: contentToUpdate.courseId, isFreeTrial: true }
+        });
+        if (otherFreeTrials === 0) {
+          await prisma.course.update({
+            where: { id: contentToUpdate.courseId },
+            data: { hasFreeTrialContent: false }
+          });
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, content }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Failed to update content" }, { status: 500 });
@@ -76,6 +97,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     await requireCourseAccess(contentToDelete.courseId);
     
     await prisma.content.delete({ where: { id: params.id } });
+
+    if (contentToDelete.isFreeTrial) {
+      const otherFreeTrials = await prisma.content.count({
+        where: { courseId: contentToDelete.courseId, isFreeTrial: true }
+      });
+      if (otherFreeTrials === 0) {
+        await prisma.course.update({
+          where: { id: contentToDelete.courseId },
+          data: { hasFreeTrialContent: false }
+        });
+      }
+    }
+
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete content" }, { status: 500 });
