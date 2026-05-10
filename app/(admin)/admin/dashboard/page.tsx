@@ -3,9 +3,14 @@
  * Overview of sales, courses, and users
  */
 
+import PushToWebsiteButton from "@/components/admin/PushToWebsiteButton";
+
 export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
+      {/* ── Push to Website ── */}
+      <PushToWebsiteButton />
+
       <div>
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-gray-600">Manage your LMS platform</p>

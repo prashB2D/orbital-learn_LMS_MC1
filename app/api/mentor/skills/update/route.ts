@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { addXP, SKILL_NAMES } from "@/lib/skills-engine";
+import { addXP, SKILL_NAMES, getNextLevelThreshold } from "@/lib/skills-engine";
 import { prisma } from "@/lib/prisma";
 import { sendNotification } from "@/lib/notification";
-
-export function getNextLevelThreshold(xp: number): number {
-  if (xp >= 5500) return 5500;
-  if (xp >= 4500) return 5500;
-  if (xp >= 3600) return 4500;
-  if (xp >= 2800) return 3600;
-  if (xp >= 2100) return 2800;
-  if (xp >= 1500) return 2100;
-  if (xp >= 1000) return 1500;
-  if (xp >= 600) return 1000;
-  if (xp >= 300) return 600;
-  if (xp >= 100) return 300;
-  return 100;
-}
 
 export async function POST(request: NextRequest) {
   try {

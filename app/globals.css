@@ -35,3 +35,12 @@
     --radius: 0.5rem;
   }
 }
+
+/* Cloudinary Upload Widget Styles */
+.cloudinary-widget {
+  z-index: 1000 !important;
+}
+
+.cloudinary-widget iframe {
+  z-index: 1001 !important;
+}

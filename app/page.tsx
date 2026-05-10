@@ -23,7 +23,7 @@ async function getFeaturedCourses() {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const response = await fetch(`${baseUrl}/api/courses?featured=true`, {
-      next: { revalidate: 3600 },
+      next: { tags: ["website-data"] },
     });
 
     if (!response.ok) throw new Error("Failed to fetch courses");

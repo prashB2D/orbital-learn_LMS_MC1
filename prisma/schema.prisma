@@ -109,6 +109,12 @@ model Course {
   courseCode   String  @unique
   aboutCourse  String?
   hasFreeTrialContent Boolean @default(false)
+  showOnWebsite        Boolean @default(false)
+
+  // Website showcase fields
+  category   String?
+  badgeText  String?
+  isFeatured Boolean  @default(false)
 
   // Relations
   modules          Module[]
@@ -606,4 +612,54 @@ model Notification {
   isRead    Boolean  @default(false)
   seen      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+// ============== WEBSITE CMS MODELS ==============
+
+enum ProgramType {
+  SUMMER
+  WINTER
+  WORKSHOP
+}
+
+model WebsiteProgram {
+  id          String      @id @default(uuid())
+  type        ProgramType
+  title       String
+  duration    String
+  description String      @db.Text
+  imageUrl    String?     // Cloudinary URL for program card image
+  isActive    Boolean     @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  isLocked    Boolean     @default(false)
+  unlockDate  DateTime?
+  isTimerOnly Boolean     @default(false) // When true: only countdown timer shows, no internship cards
+  highlights  String?     // JSON array of {time: string, text: string} — populates website aside/hover panel
+  features    String?     // JSON array of strings e.g. ["Internship", "Certification"]
+  nextBatchDate String?   // Date string e.g. "2025-09-01"
+  courses     String?     // JSON array of linked course identifiers
+  workshops   String?     // JSON array of linked workshop identifiers
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model WebsiteTestimonial {
+  id          String   @id @default(uuid())
+  studentName String
+  role        String
+  text        String   @db.Text
+  rating      Int      // 1-5
+  avatarUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WebsiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

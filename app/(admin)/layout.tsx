@@ -3,12 +3,13 @@
  * Wrapper for all admin pages
  */
 
-import { LogOut, BookOpen, Users, DollarSign, BarChart, Settings, Search, Award, GraduationCap, ShoppingBag, Share2, Tag, Coins } from "lucide-react";
+import { LogOut, BookOpen, Users, DollarSign, BarChart, Settings, Search, Award, GraduationCap, ShoppingBag, Share2, Tag, Coins, Layers, Globe, MessageSquareQuote } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import LogoutButton from "@/components/LogoutButton"; // We will create this
+import LogoutButton from "@/components/LogoutButton";
 import RoleGuard from "@/components/auth/RoleGuard";
+import PublishButton from "@/components/admin/PublishButton";
 
 export default async function AdminLayout({
   children,
@@ -111,6 +112,38 @@ export default async function AdminLayout({
               <Coins className="w-5 h-5" /> Coin Oversight
             </Link>
           )}
+          {!isMentor && (
+            <Link
+              href="/admin/programs"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <Layers className="w-5 h-5" /> Programs
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/showcase"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <Globe className="w-5 h-5" /> Course Showcase
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/testimonials"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <MessageSquareQuote className="w-5 h-5" /> Testimonials
+            </Link>
+          )}
+          {!isMentor && (
+            <Link
+              href="/admin/website-settings"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition font-medium"
+            >
+              <Settings className="w-5 h-5" /> Website Settings
+            </Link>
+          )}
         </nav>
 
         <div className="p-4 mt-auto border-t border-white/10">
@@ -142,6 +175,7 @@ export default async function AdminLayout({
             />
           </div>
           <div className="flex items-center gap-4 flex-1 justify-end">
+            {!isMentor && <PublishButton />}
             <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
               <Settings className="w-5 h-5" />
             </button>
