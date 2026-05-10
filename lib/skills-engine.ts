@@ -38,6 +38,20 @@ export function calculateHexagonPoints(xp: number): number {
   return Math.min(100, Math.max(0, Math.round((xp / 5500) * 100)));
 }
 
+export function getNextLevelThreshold(xp: number): number {
+  if (xp >= 5500) return 5500;
+  if (xp >= 4500) return 5500;
+  if (xp >= 3600) return 4500;
+  if (xp >= 2800) return 3600;
+  if (xp >= 2100) return 2800;
+  if (xp >= 1500) return 2100;
+  if (xp >= 1000) return 1500;
+  if (xp >= 600) return 1000;
+  if (xp >= 300) return 600;
+  if (xp >= 100) return 300;
+  return 100;
+}
+
 export async function addXP(userId: string, skillName: string, xpGained: number, source: "AUTO" | "MANUAL", reason: string, grantedById?: string) {
   if (!SKILL_NAMES.includes(skillName) || xpGained === 0) return null;
 

@@ -19,6 +19,7 @@ type: reference
 ## Authentication
 - NextAuth.js 4.24.7
 - bcryptjs 2.4.3
+`
 
 ## Styling
 - Tailwind CSS 3.4.3
